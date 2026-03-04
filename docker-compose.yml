@@ -51,6 +51,7 @@ services:
       AI_AZURE_DEPLOYMENT_NAME: ${AI_AZURE_DEPLOYMENT_NAME:-}
       AGENT_LOOP_INTERVAL_CRON: ${AGENT_LOOP_INTERVAL_CRON:-0 */4 * * *}
       DAILY_REPORT_CRON: ${DAILY_REPORT_CRON:-0 18 * * *}
+      EXA_API_KEY: ${EXA_API_KEY:-}
     ports:
       - "3001:3001"
 
@@ -62,6 +63,11 @@ services:
       - backend
     environment:
       NEXT_PUBLIC_BACKEND_URL: http://backend:3001
+      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY:-}
+      CLERK_SECRET_KEY: ${CLERK_SECRET_KEY:-}
+      NEXT_PUBLIC_CLERK_SIGN_IN_URL: /login
+      NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL: /dashboard
+      NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL: /new
     ports:
       - "3000:3000"
 
