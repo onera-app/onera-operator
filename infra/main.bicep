@@ -1,9 +1,10 @@
 // =============================================================================
 // Onera Operator — Azure Infrastructure
 // =============================================================================
-// Frontend : Azure Web App (Linux, Node 20, B1) — Next.js standalone
-// Backend  : Azure Web App (Linux, Node 20, B1) — Fastify
-// Both share one App Service Plan (B1 = ~$13/mo total)
+// Frontend : Azure Web App (Linux, Docker) — Next.js standalone
+// Backend  : Azure Web App (Linux, Docker) — Fastify
+// Plan     : Existing ASP-onera (P1v3) in onera resource group
+// ACR      : Existing oneraacr.azurecr.io
 // Database : Neon PostgreSQL (external)
 // Redis    : Azure Cache for Redis — onera-redis (existing, onera RG)
 // =============================================================================
@@ -14,16 +15,33 @@ targetScope = 'resourceGroup'
 // Parameters
 // -----------------------------------------------------------------------------
 
-@description('Base name for all resources')
-param appName string = 'onera'
-
 @description('Azure region')
 param location string = resourceGroup().location
 
-@description('Environment (dev | staging | prod)')
-@allowed(['dev', 'staging', 'prod'])
-param environment string = 'prod'
+@description('Name of the existing App Service Plan')
+param appServicePlanName string = 'ASP-onera'
 
+@description('ACR login server')
+param acrLoginServer string = 'oneraacr.azurecr.io'
+
+@secure()
+@description('ACR admin username')
+param acrUsername string
+
+@secure()
+@description('ACR admin password')
+param acrPassword string
+
+@description('Backend Docker image (without tag)')
+param backendImage string = 'onera-operator-backend'
+
+@description('Frontend Docker image (without tag)')
+param frontendImage string = 'onera-operator-frontend'
+
+@description('Image tag')
+param imageTag string = 'latest'
+
+// --- Secrets ---
 @secure()
 param databaseUrl string
 
@@ -53,68 +71,60 @@ param clerkAfterSignInUrl string = '/dashboard'
 param clerkAfterSignUpUrl string = '/new'
 param clerkAfterSignOutUrl string = '/home'
 
-param frontendCustomDomain string = 'orchestrator.onera.chat'
-param backendCustomDomain string = 'orchestrator-api.onera.chat'
+param frontendCustomDomain string = 'operator.onera.chat'
+param backendCustomDomain string = 'operator-api.onera.chat'
 
 // -----------------------------------------------------------------------------
 // Variables
 // -----------------------------------------------------------------------------
 
-var prefix = '${appName}-${environment}'
-var tags = { app: appName, environment: environment, managedBy: 'bicep' }
+var tags = { app: 'onera-operator', managedBy: 'bicep' }
 var frontendUrl = 'https://${frontendCustomDomain}'
 var backendUrl  = 'https://${backendCustomDomain}'
 
 // -----------------------------------------------------------------------------
-// App Service Plan — Linux B1, shared by both apps (no extra cost)
+// Reference existing App Service Plan
 // -----------------------------------------------------------------------------
 
-resource plan 'Microsoft.Web/serverfarms@2023-01-01' = {
-  name: '${prefix}-plan'
-  location: location
-  tags: tags
-  kind: 'linux'
-  sku: {
-    name: 'B1'
-    tier: 'Basic'
-  }
-  properties: {
-    reserved: true
-  }
+resource plan 'Microsoft.Web/serverfarms@2023-01-01' existing = {
+  name: appServicePlanName
 }
 
 // -----------------------------------------------------------------------------
-// Backend — Fastify (Node 20)
-// Startup: node packages/backend/dist/index.js
+// Backend — Fastify (Docker)
 // -----------------------------------------------------------------------------
 
 resource backend 'Microsoft.Web/sites@2023-01-01' = {
-  name: '${prefix}-backend'
+  name: 'onera-operator-backend'
   location: location
   tags: tags
-  kind: 'app,linux'
+  kind: 'app,linux,container'
   properties: {
     serverFarmId: plan.id
     httpsOnly: true
     siteConfig: {
-      linuxFxVersion: 'NODE|20-lts'
+      linuxFxVersion: 'DOCKER|${acrLoginServer}/${backendImage}:${imageTag}'
       alwaysOn: true
       ftpsState: 'Disabled'
       http20Enabled: true
       minTlsVersion: '1.2'
-      appCommandLine: 'node packages/backend/dist/index.js'
       healthCheckPath: '/api/health'
       cors: {
-        allowedOrigins: [frontendUrl, 'https://${prefix}-frontend.azurewebsites.net']
+        allowedOrigins: [
+          frontendUrl
+          'https://onera-operator-frontend.azurewebsites.net'
+        ]
         supportCredentials: true
       }
       appSettings: [
+        { name: 'DOCKER_REGISTRY_SERVER_URL',       value: 'https://${acrLoginServer}' }
+        { name: 'DOCKER_REGISTRY_SERVER_USERNAME',   value: acrUsername }
+        { name: 'DOCKER_REGISTRY_SERVER_PASSWORD',   value: acrPassword }
+        { name: 'WEBSITES_ENABLE_APP_SERVICE_STORAGE', value: 'false' }
+        { name: 'WEBSITES_PORT',                     value: '3001' }
         { name: 'NODE_ENV',                          value: 'production' }
-        { name: 'WEBSITE_NODE_DEFAULT_VERSION',      value: '~20' }
-        { name: 'SCM_DO_BUILD_DURING_DEPLOYMENT',    value: 'false' }
-        { name: 'WEBSITE_RUN_FROM_PACKAGE',          value: '1' }
-        { name: 'PORT',                              value: '8080' }
-        { name: 'BACKEND_PORT',                      value: '8080' }
+        { name: 'PORT',                              value: '3001' }
+        { name: 'BACKEND_PORT',                      value: '3001' }
         { name: 'DATABASE_URL',                      value: databaseUrl }
         { name: 'REDIS_URL',                         value: redisUrl }
         { name: 'AI_PROVIDER',                       value: aiProvider }
@@ -135,39 +145,39 @@ resource backend 'Microsoft.Web/sites@2023-01-01' = {
 }
 
 // -----------------------------------------------------------------------------
-// Frontend — Next.js standalone (Node 20)
-// Startup: node packages/frontend/server.js
+// Frontend — Next.js standalone (Docker)
 // -----------------------------------------------------------------------------
 
 resource frontend 'Microsoft.Web/sites@2023-01-01' = {
-  name: '${prefix}-frontend'
+  name: 'onera-operator-frontend'
   location: location
   tags: tags
-  kind: 'app,linux'
+  kind: 'app,linux,container'
   properties: {
     serverFarmId: plan.id
     httpsOnly: true
     siteConfig: {
-      linuxFxVersion: 'NODE|20-lts'
+      linuxFxVersion: 'DOCKER|${acrLoginServer}/${frontendImage}:${imageTag}'
       alwaysOn: true
       ftpsState: 'Disabled'
       http20Enabled: true
       minTlsVersion: '1.2'
-      appCommandLine: 'node packages/frontend/server.js'
       appSettings: [
-        { name: 'NODE_ENV',                              value: 'production' }
-        { name: 'WEBSITE_NODE_DEFAULT_VERSION',          value: '~20' }
-        { name: 'SCM_DO_BUILD_DURING_DEPLOYMENT',        value: 'false' }
-        { name: 'WEBSITE_RUN_FROM_PACKAGE',              value: '1' }
-        { name: 'PORT',                                  value: '8080' }
-        { name: 'NEXT_TELEMETRY_DISABLED',               value: '1' }
-        { name: 'NEXT_PUBLIC_BACKEND_URL',               value: backendUrl }
-        { name: 'NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY',     value: clerkPublishableKey }
-        { name: 'CLERK_SECRET_KEY',                      value: clerkSecretKey }
-        { name: 'NEXT_PUBLIC_CLERK_SIGN_IN_URL',         value: clerkSignInUrl }
-        { name: 'NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL',   value: clerkAfterSignInUrl }
-        { name: 'NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL',   value: clerkAfterSignUpUrl }
-        { name: 'NEXT_PUBLIC_CLERK_AFTER_SIGN_OUT_URL',  value: clerkAfterSignOutUrl }
+        { name: 'DOCKER_REGISTRY_SERVER_URL',       value: 'https://${acrLoginServer}' }
+        { name: 'DOCKER_REGISTRY_SERVER_USERNAME',   value: acrUsername }
+        { name: 'DOCKER_REGISTRY_SERVER_PASSWORD',   value: acrPassword }
+        { name: 'WEBSITES_ENABLE_APP_SERVICE_STORAGE', value: 'false' }
+        { name: 'WEBSITES_PORT',                     value: '3000' }
+        { name: 'NODE_ENV',                          value: 'production' }
+        { name: 'PORT',                              value: '3000' }
+        { name: 'NEXT_TELEMETRY_DISABLED',           value: '1' }
+        { name: 'NEXT_PUBLIC_BACKEND_URL',           value: backendUrl }
+        { name: 'NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY', value: clerkPublishableKey }
+        { name: 'CLERK_SECRET_KEY',                  value: clerkSecretKey }
+        { name: 'NEXT_PUBLIC_CLERK_SIGN_IN_URL',     value: clerkSignInUrl }
+        { name: 'NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL', value: clerkAfterSignInUrl }
+        { name: 'NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL', value: clerkAfterSignUpUrl }
+        { name: 'NEXT_PUBLIC_CLERK_AFTER_SIGN_OUT_URL', value: clerkAfterSignOutUrl }
       ]
     }
   }
