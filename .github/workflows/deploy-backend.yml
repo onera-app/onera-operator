@@ -1,0 +1,70 @@
+# =============================================================================
+# Deploy Backend → Azure Web App (onera-prod-backend)
+# =============================================================================
+# Triggers:
+#   - Push to main when backend packages change
+#   - Manual dispatch (deploy any time)
+# =============================================================================
+name: Deploy Backend
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "packages/backend/**"
+      - "packages/database/**"
+      - "packages/ai/**"
+      - "packages/agents/**"
+      - "packages/tools/**"
+      - "packages/shared/**"
+      - "pnpm-lock.yaml"
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-backend
+  cancel-in-progress: false
+
+env:
+  NODE_VERSION: "20"
+  PNPM_VERSION: "9.15.0"
+
+jobs:
+  deploy:
+    name: Build & Deploy Backend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build all backend packages
+        run: |
+          pnpm --filter @onera/database run generate
+          pnpm --filter @onera/database run build
+          pnpm --filter @onera/shared run build
+          pnpm --filter @onera/ai run build
+          pnpm --filter @onera/tools run build
+          pnpm --filter @onera/agents run build
+          pnpm --filter @onera/backend run build
+
+      - name: Run database migrations
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: pnpm --filter @onera/database exec prisma migrate deploy
+
+      - name: Deploy to Azure Web App
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: onera-prod-backend
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+          package: .
