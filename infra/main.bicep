@@ -1,10 +1,11 @@
 // =============================================================================
 // Onera Operator — Azure Infrastructure
 // =============================================================================
-// Frontend : Azure Static Web App (Standard)
-// Backend  : Azure Web App (Linux, Node 20, B1)
+// Frontend : Azure Web App (Linux, Node 20, B1) — Next.js standalone
+// Backend  : Azure Web App (Linux, Node 20, B1) — Fastify
+// Both share one App Service Plan (B1 = ~$13/mo total)
 // Database : Neon PostgreSQL (external)
-// Redis    : Azure Cache for Redis — onera-redis (existing, different RG)
+// Redis    : Azure Cache for Redis — onera-redis (existing, onera RG)
 // =============================================================================
 
 targetScope = 'resourceGroup'
@@ -52,7 +53,6 @@ param clerkAfterSignInUrl string = '/dashboard'
 param clerkAfterSignUpUrl string = '/new'
 param clerkAfterSignOutUrl string = '/home'
 
-// Custom domains
 param frontendCustomDomain string = 'orchestrator.onera.chat'
 param backendCustomDomain string = 'orchestrator-api.onera.chat'
 
@@ -62,14 +62,14 @@ param backendCustomDomain string = 'orchestrator-api.onera.chat'
 
 var prefix = '${appName}-${environment}'
 var tags = { app: appName, environment: environment, managedBy: 'bicep' }
-
 var frontendUrl = 'https://${frontendCustomDomain}'
+var backendUrl  = 'https://${backendCustomDomain}'
 
 // -----------------------------------------------------------------------------
-// App Service Plan — Linux B1 (cheapest always-on)
+// App Service Plan — Linux B1, shared by both apps (no extra cost)
 // -----------------------------------------------------------------------------
 
-resource appServicePlan 'Microsoft.Web/serverfarms@2023-01-01' = {
+resource plan 'Microsoft.Web/serverfarms@2023-01-01' = {
   name: '${prefix}-plan'
   location: location
   tags: tags
@@ -79,91 +79,97 @@ resource appServicePlan 'Microsoft.Web/serverfarms@2023-01-01' = {
     tier: 'Basic'
   }
   properties: {
-    reserved: true  // required for Linux
+    reserved: true
   }
 }
 
 // -----------------------------------------------------------------------------
-// Backend — Azure Web App (Node 20 LTS)
+// Backend — Fastify (Node 20)
+// Startup: node packages/backend/dist/index.js
 // -----------------------------------------------------------------------------
 
-resource backendApp 'Microsoft.Web/sites@2023-01-01' = {
+resource backend 'Microsoft.Web/sites@2023-01-01' = {
   name: '${prefix}-backend'
   location: location
   tags: tags
   kind: 'app,linux'
   properties: {
-    serverFarmId: appServicePlan.id
+    serverFarmId: plan.id
     httpsOnly: true
     siteConfig: {
       linuxFxVersion: 'NODE|20-lts'
-      nodeVersion: '~20'
       alwaysOn: true
       ftpsState: 'Disabled'
       http20Enabled: true
       minTlsVersion: '1.2'
+      appCommandLine: 'node packages/backend/dist/index.js'
+      healthCheckPath: '/api/health'
       cors: {
-        allowedOrigins: [frontendUrl, 'https://${prefix}-frontend.azurestaticapps.net']
+        allowedOrigins: [frontendUrl, 'https://${prefix}-frontend.azurewebsites.net']
         supportCredentials: true
       }
       appSettings: [
-        { name: 'NODE_ENV',                   value: 'production' }
-        { name: 'WEBSITE_NODE_DEFAULT_VERSION', value: '~20' }
-        { name: 'SCM_DO_BUILD_DURING_DEPLOYMENT', value: 'false' }
-        // Startup command — run migrations then start server
-        { name: 'DATABASE_URL',               value: databaseUrl }
-        { name: 'REDIS_URL',                  value: redisUrl }
-        { name: 'AI_PROVIDER',                value: aiProvider }
-        { name: 'AI_MODEL',                   value: aiModel }
-        { name: 'AI_API_KEY',                 value: aiApiKey }
-        { name: 'AI_BASE_URL',                value: aiBaseUrl }
-        { name: 'AI_AZURE_RESOURCE_NAME',     value: aiAzureResourceName }
-        { name: 'AI_AZURE_DEPLOYMENT_NAME',   value: aiAzureDeploymentName }
-        { name: 'EXA_API_KEY',                value: exaApiKey }
-        { name: 'FRONTEND_URL',               value: frontendUrl }
-        { name: 'NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY', value: clerkPublishableKey }
-        { name: 'NEXT_PUBLIC_CLERK_SIGN_IN_URL',     value: clerkSignInUrl }
-        { name: 'NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL', value: clerkAfterSignInUrl }
-        { name: 'NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL', value: clerkAfterSignUpUrl }
-        { name: 'NEXT_PUBLIC_CLERK_AFTER_SIGN_OUT_URL', value: clerkAfterSignOutUrl }
-        { name: 'BACKEND_PORT',               value: '8080' }
-        { name: 'PORT',                       value: '8080' }
-        { name: 'AGENT_LOOP_INTERVAL_CRON',   value: '0 */4 * * *' }
-        { name: 'DAILY_REPORT_CRON',          value: '0 18 * * *' }
-        { name: 'CLERK_SECRET_KEY',           value: clerkSecretKey }
-        // Health check
+        { name: 'NODE_ENV',                          value: 'production' }
+        { name: 'WEBSITE_NODE_DEFAULT_VERSION',      value: '~20' }
+        { name: 'SCM_DO_BUILD_DURING_DEPLOYMENT',    value: 'false' }
+        { name: 'WEBSITE_RUN_FROM_PACKAGE',          value: '1' }
+        { name: 'PORT',                              value: '8080' }
+        { name: 'BACKEND_PORT',                      value: '8080' }
+        { name: 'DATABASE_URL',                      value: databaseUrl }
+        { name: 'REDIS_URL',                         value: redisUrl }
+        { name: 'AI_PROVIDER',                       value: aiProvider }
+        { name: 'AI_MODEL',                          value: aiModel }
+        { name: 'AI_API_KEY',                        value: aiApiKey }
+        { name: 'AI_BASE_URL',                       value: aiBaseUrl }
+        { name: 'AI_AZURE_RESOURCE_NAME',            value: aiAzureResourceName }
+        { name: 'AI_AZURE_DEPLOYMENT_NAME',          value: aiAzureDeploymentName }
+        { name: 'EXA_API_KEY',                       value: exaApiKey }
+        { name: 'FRONTEND_URL',                      value: frontendUrl }
+        { name: 'CLERK_SECRET_KEY',                  value: clerkSecretKey }
+        { name: 'AGENT_LOOP_INTERVAL_CRON',          value: '0 */4 * * *' }
+        { name: 'DAILY_REPORT_CRON',                 value: '0 18 * * *' }
         { name: 'WEBSITE_HEALTHCHECK_MAXPINGFAILURES', value: '3' }
       ]
-      healthCheckPath: '/api/health'
     }
   }
 }
 
-// Backend startup command — set separately so it's easy to update
-resource backendConfig 'Microsoft.Web/sites/config@2023-01-01' = {
-  parent: backendApp
-  name: 'web'
-  properties: {
-    appCommandLine: 'node packages/backend/dist/index.js'
-  }
-}
-
 // -----------------------------------------------------------------------------
-// Frontend — Azure Static Web App (Standard for custom domain + API proxy)
+// Frontend — Next.js standalone (Node 20)
+// Startup: node packages/frontend/server.js
 // -----------------------------------------------------------------------------
 
-resource staticWebApp 'Microsoft.Web/staticSites@2023-01-01' = {
+resource frontend 'Microsoft.Web/sites@2023-01-01' = {
   name: '${prefix}-frontend'
-  location: 'eastus2'   // SWA has limited regions; eastus2 is closest to eastus
+  location: location
   tags: tags
-  sku: {
-    name: 'Standard'    // Standard required for custom domains with SSL
-    tier: 'Standard'
-  }
+  kind: 'app,linux'
   properties: {
-    stagingEnvironmentPolicy: 'Disabled'
-    allowConfigFileUpdates: true
-    enterpriseGradeCdnStatus: 'Disabled'
+    serverFarmId: plan.id
+    httpsOnly: true
+    siteConfig: {
+      linuxFxVersion: 'NODE|20-lts'
+      alwaysOn: true
+      ftpsState: 'Disabled'
+      http20Enabled: true
+      minTlsVersion: '1.2'
+      appCommandLine: 'node packages/frontend/server.js'
+      appSettings: [
+        { name: 'NODE_ENV',                              value: 'production' }
+        { name: 'WEBSITE_NODE_DEFAULT_VERSION',          value: '~20' }
+        { name: 'SCM_DO_BUILD_DURING_DEPLOYMENT',        value: 'false' }
+        { name: 'WEBSITE_RUN_FROM_PACKAGE',              value: '1' }
+        { name: 'PORT',                                  value: '8080' }
+        { name: 'NEXT_TELEMETRY_DISABLED',               value: '1' }
+        { name: 'NEXT_PUBLIC_BACKEND_URL',               value: backendUrl }
+        { name: 'NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY',     value: clerkPublishableKey }
+        { name: 'CLERK_SECRET_KEY',                      value: clerkSecretKey }
+        { name: 'NEXT_PUBLIC_CLERK_SIGN_IN_URL',         value: clerkSignInUrl }
+        { name: 'NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL',   value: clerkAfterSignInUrl }
+        { name: 'NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL',   value: clerkAfterSignUpUrl }
+        { name: 'NEXT_PUBLIC_CLERK_AFTER_SIGN_OUT_URL',  value: clerkAfterSignOutUrl }
+      ]
+    }
   }
 }
 
@@ -171,10 +177,8 @@ resource staticWebApp 'Microsoft.Web/staticSites@2023-01-01' = {
 // Outputs
 // -----------------------------------------------------------------------------
 
-output backendAppName     string = backendApp.name
-output backendDefaultUrl  string = 'https://${backendApp.properties.defaultHostName}'
-output frontendAppName    string = staticWebApp.name
-output frontendDefaultUrl string = 'https://${staticWebApp.properties.defaultHostname}'
-output appServicePlanName string = appServicePlan.name
-// NOTE: Retrieve SWA deploy token after deployment with:
-// az staticwebapp secrets list --name <name> --query "properties.apiKey" -o tsv
+output backendAppName    string = backend.name
+output backendDefaultUrl string = 'https://${backend.properties.defaultHostName}'
+output frontendAppName   string = frontend.name
+output frontendDefaultUrl string = 'https://${frontend.properties.defaultHostName}'
+output planName          string = plan.name

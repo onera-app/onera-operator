@@ -1,9 +1,6 @@
 # =============================================================================
-# Deploy Frontend → Azure Static Web App (onera-prod-frontend)
-# =============================================================================
-# Triggers:
-#   - Push to main when frontend or shared packages change
-#   - Manual dispatch (deploy any time)
+# Deploy Frontend → Azure Web App (onera-prod-frontend)
+# Builds Next.js standalone output, zips it, deploys via publish profile
 # =============================================================================
 name: Deploy Frontend
 
@@ -46,7 +43,7 @@ jobs:
       - name: Build shared
         run: pnpm --filter @onera/shared run build
 
-      - name: Build frontend
+      - name: Build frontend (Next.js standalone)
         env:
           NEXT_PUBLIC_BACKEND_URL: https://orchestrator-api.onera.chat
           NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.CLERK_PUBLISHABLE_KEY }}
@@ -54,14 +51,25 @@ jobs:
           NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL: /dashboard
           NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL: /new
           NEXT_PUBLIC_CLERK_AFTER_SIGN_OUT_URL: /home
+          NEXT_TELEMETRY_DISABLED: 1
         run: pnpm --filter @onera/frontend run build
 
-      - name: Deploy to Azure Static Web App
-        uses: Azure/static-web-apps-deploy@v1
+      - name: Package standalone output
+        run: |
+          # Next.js standalone output lives at packages/frontend/.next/standalone
+          # Copy static and public assets into it (required by Next.js standalone)
+          cp -r packages/frontend/.next/static \
+            packages/frontend/.next/standalone/packages/frontend/.next/static
+          cp -r packages/frontend/public \
+            packages/frontend/.next/standalone/packages/frontend/public
+
+          cd packages/frontend/.next/standalone
+          zip -r ${{ github.workspace }}/frontend-deploy.zip . -x "*.map" -q
+          echo "Package size: $(du -sh ${{ github.workspace }}/frontend-deploy.zip | cut -f1)"
+
+      - name: Deploy to Azure Web App
+        uses: azure/webapps-deploy@v3
         with:
-          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          action: upload
-          app_location: packages/frontend
-          output_location: .next
-          skip_app_build: true
+          app-name: onera-prod-frontend
+          publish-profile: ${{ secrets.AZURE_WEBAPP_FRONTEND_PUBLISH_PROFILE }}
+          package: frontend-deploy.zip
