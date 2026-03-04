@@ -81,17 +81,12 @@ export async function deductCredits(
   userId: string,
   amount: number
 ): Promise<boolean> {
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { credits: true },
-  });
-  if (!user || user.credits < amount) return false;
-
-  await prisma.user.update({
-    where: { id: userId },
+  // Atomic decrement: only updates if credits >= amount, preventing race conditions
+  const result = await prisma.user.updateMany({
+    where: { id: userId, credits: { gte: amount } },
     data: { credits: { decrement: amount } },
   });
-  return true;
+  return result.count > 0;
 }
 
 /**
