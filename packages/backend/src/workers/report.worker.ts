@@ -10,7 +10,7 @@ import {
   getTaskMetrics,
   listTasks,
 } from "../services/task.service.js";
-import { createDailyReport } from "../services/report.service.js";
+import { createDailyReport, sendDailyDigestEmail } from "../services/report.service.js";
 import { upsertAgentStatus } from "../services/execution.service.js";
 
 /**
@@ -114,6 +114,18 @@ export function startReportWorker(): Worker<SchedulerJob> {
               blockers: report.blockers,
               nextSteps: report.nextSteps,
             }),
+          });
+
+          // Send daily digest email to the project owner (Polsia-style morning email)
+          await sendDailyDigestEmail({
+            projectId: project.id,
+            projectName: project.name,
+            reportContent: report.content,
+            highlights: report.highlights || [],
+            nextSteps: report.nextSteps || [],
+            completedCount: metrics.completed,
+            pendingCount: metrics.pending,
+            date: today!,
           });
 
           console.log(

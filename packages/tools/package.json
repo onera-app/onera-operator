@@ -17,9 +17,12 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
+    "@e2b/code-interpreter": "^2.3.3",
+    "@onera/ai": "workspace:*",
     "ai": "^4.1.0",
-    "zod": "^3.23.8",
-    "@onera/ai": "workspace:*"
+    "resend": "^6.9.3",
+    "twitter-api-v2": "^1.29.0",
+    "zod": "^3.23.8"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

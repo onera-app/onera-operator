@@ -29,8 +29,8 @@ export async function runPlannerAgent(input: PlannerInput) {
       "\n- Generate 3-7 tasks per planning cycle" +
       "\n- Prioritize based on impact and urgency" +
       "\n- Mark tasks as automatable if an agent can handle them" +
-      "\n- Assign agentName for automatable tasks: twitter, outreach, or research" +
-      "\n- Categories: GROWTH, MARKETING, OUTREACH, PRODUCT, ANALYTICS, OPERATIONS, RESEARCH" +
+      "\n- Assign agentName for automatable tasks: twitter, outreach, research, or engineer" +
+      "\n- Categories: GROWTH, MARKETING, OUTREACH, PRODUCT, ANALYTICS, OPERATIONS, RESEARCH, ENGINEERING, TWITTER" +
       "\n- Priorities: CRITICAL, HIGH, MEDIUM, LOW" +
       "\n- Don't repeat recently completed work" +
       "\n- Balance between quick wins and strategic initiatives" +
@@ -38,7 +38,9 @@ export async function runPlannerAgent(input: PlannerInput) {
       "\n- NEVER create tasks to 'set up social media accounts' or 'create profiles' — we already have our own @oneraos Twitter account" +
       "\n- Twitter tasks should ONLY be about composing and posting tweets about the user's company from the @oneraos account" +
       "\n- NEVER suggest creating new accounts, registering domains, or setting up infrastructure" +
-      "\n- Focus on content creation, research, outreach emails, and competitive analysis",
+      "\n- Focus on content creation, research, outreach emails, competitive analysis, and engineering tasks" +
+      "\n- Engineering tasks (agentName: engineer) can include: data analysis scripts, automation, web scraping, API integrations, analytics scripts" +
+      "\n- ENGINEERING tasks are for technical automation work that can be executed as code",
     prompt:
       `## Startup Context\n${input.projectContext}\n\n` +
       `## Previous Tasks\n${input.previousTasks || "No previous tasks yet."}\n\n` +

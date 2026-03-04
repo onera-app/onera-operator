@@ -14,6 +14,10 @@ export {
 export { runReportAgent, type ReportAgentInput } from "./report.agent.js";
 export { streamChatAgent } from "./chat.agent.js";
 export {
+  runEngineerAgent,
+  type EngineerAgentInput,
+} from "./engineer.agent.js";
+export {
   getExecutionAgent,
   listAgentNames,
   AGENT_DISPLAY_NAMES,

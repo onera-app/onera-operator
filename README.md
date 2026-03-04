@@ -2,18 +2,20 @@
 
 **AI operator that runs growth and operations for your startup.**
 
-Onera Operator is an open-source AI COO that continuously plans and executes tasks like marketing, outreach, competitive research, and daily reporting -- so founders can focus on building.
+Onera Operator is an open-source AI COO — a self-running system that continuously plans and executes tasks like marketing, outreach, competitive research, engineering, and daily reporting -- so founders can focus on building.
 
 Enter your company name and website URL. The system auto-researches your company, creates a plan, and starts executing -- all within minutes.
+
+> **Open-source alternative to [Polsia](https://polsia.com)** — built with Crawl4AI for deep web crawling, Resend for production email, E2B for sandboxed code execution, and the full Vercel AI SDK stack.
 
 ## How It Works
 
 Onera Operator runs an autonomous **agent loop** that:
 
-1. **Researches** your startup by scraping your website and analyzing your product, audience, and competitors
+1. **Researches** your startup by deep-crawling your website (via Crawl4AI) and analyzing your product, audience, and competitors
 2. **Plans** actionable tasks using an AI planner agent (3-7 tasks per cycle)
-3. **Executes** automatable work through specialized agents (tweets, emails, research)
-4. **Reports** progress with daily operational summaries
+3. **Executes** automatable work through specialized agents (tweets, emails, research, engineering)
+4. **Reports** progress with daily operational summaries sent to your inbox (via Resend)
 5. **Repeats** every 4 hours, continuously operating your startup's growth engine
 
 The dashboard gives you a real-time **Startup Operating System** view with a terminal bar showing live agent activity, task queues, social/outreach panels, and daily reports.
@@ -21,10 +23,15 @@ The dashboard gives you a real-time **Startup Operating System** view with a ter
 ## Features
 
 - **Autonomous agent loop** -- planner creates tasks, workers execute them, cycle repeats
-- **Company auto-research** -- enter a URL, the system scrapes and understands your business
+- **Company auto-research** -- enter a URL, the system deep-crawls and understands your business
+- **7 specialized agents** -- planner, twitter, outreach, research, **engineer**, report, chat
+- **11 composable tools** -- every capability is a standalone tool agents can use
+- **Deep web crawling via Crawl4AI** -- handles JS-rendered pages, dynamic sites, anti-bot measures
+- **Real email sending via Resend** -- outreach emails and daily founder digests sent for real
+- **Sandboxed code execution via E2B** -- engineering agent runs code safely in isolated VMs
+- **Real Twitter/X posting** -- tweets actually post via Twitter API v2
+- **Morning email digest** -- daily summary of what was accomplished and what's next, sent to founders
 - **Credit system** -- 100 free credits per user, each task costs credits
-- **6 specialized agents** -- planner, twitter, outreach, research, report, chat
-- **10 composable tools** -- every capability is a standalone tool agents can use
 - **LLM agnostic** -- swap between OpenAI, Anthropic, Azure, or local models via env vars
 - **Real-time dashboard** -- 4-column layout with live polling (tasks, social, email, reports)
 - **Blueprint UI** -- monospace technical aesthetic with dashed borders and terminal bar
@@ -81,17 +88,21 @@ The dashboard gives you a real-time **Startup Operating System** view with a ter
 
 ## Tech Stack
 
-| Layer      | Technology                          |
-|------------|-------------------------------------|
-| Frontend   | Next.js 15, React 19, Tailwind CSS  |
-| Backend    | Fastify, TypeScript                 |
-| AI         | Vercel AI SDK v4                    |
-| Auth       | Clerk                               |
-| Database   | PostgreSQL, Prisma ORM              |
-| Queue      | BullMQ, Redis                       |
-| Search     | Exa API                             |
-| Monorepo   | pnpm workspaces                     |
-| Deploy     | Docker, docker-compose              |
+| Layer        | Technology                              |
+|--------------|-----------------------------------------|
+| Frontend     | Next.js 15, React 19, Tailwind CSS      |
+| Backend      | Fastify, TypeScript                     |
+| AI           | Vercel AI SDK v4                        |
+| Auth         | Clerk                                   |
+| Database     | PostgreSQL, Prisma ORM                  |
+| Queue        | BullMQ, Redis                           |
+| Search       | Exa API                                 |
+| Web Crawling | Crawl4AI (deep crawling + JS rendering) |
+| Email        | Resend (outreach + daily digest)        |
+| Code Sandbox | E2B (isolated VM code execution)        |
+| Social       | Twitter API v2 (real tweet posting)     |
+| Monorepo     | pnpm workspaces                         |
+| Deploy       | Docker, docker-compose                  |
 
 ## Quick Start
 
@@ -132,6 +143,24 @@ CLERK_SECRET_KEY=sk_test_...
 
 # Web search (optional but recommended)
 EXA_API_KEY=...
+
+# Email via Resend (optional — enables real email sending + founder digests)
+RESEND_API_KEY=re_...
+RESEND_FROM_EMAIL=Onera Operator <operator@yourdomain.com>
+
+# Deep web crawling via Crawl4AI (optional — enables JS rendering)
+# Start with: docker run -p 11235:11235 unclecode/crawl4ai:latest
+# Or included in docker compose up
+CRAWL4AI_API_URL=http://localhost:11235
+
+# Sandboxed code execution via E2B (optional — enables engineering agent)
+E2B_API_KEY=...
+
+# Twitter/X posting (optional — enables real tweet posting)
+TWITTER_API_KEY=...
+TWITTER_API_SECRET=...
+TWITTER_ACCESS_TOKEN=...
+TWITTER_ACCESS_TOKEN_SECRET=...
 ```
 
 ### 3. Set up the database
@@ -165,12 +194,12 @@ pnpm dev:frontend  # http://localhost:3000
 
 ```bash
 cp .env.example .env
-# Edit .env with your AI_API_KEY and Clerk keys
+# Edit .env with your AI_API_KEY, Clerk keys, and optional integrations
 
 docker compose up
 ```
 
-This starts PostgreSQL, Redis, the backend, and the frontend.
+This starts PostgreSQL, Redis, **Crawl4AI** (deep web crawler), the backend, and the frontend.
 
 ## LLM Provider Configuration
 
@@ -218,14 +247,15 @@ onera-operator/
 
 ## Agents
 
-| Agent     | Description                                       | Tools Used                                    |
-|-----------|---------------------------------------------------|-----------------------------------------------|
-| Planner   | Generates structured task plans from startup context | (structured output via Zod schema)           |
-| Twitter   | Composes and schedules tweets from @oneraos       | generateTweet, scheduleTweet                  |
-| Outreach  | Writes personalized cold emails, finds leads      | generateEmail, sendEmail, findLeads           |
-| Research  | Competitive analysis and market research          | competitorResearch, webSearch, webScraper, summarize |
-| Report    | Generates daily operational reports               | (structured output)                           |
-| Chat      | Interactive assistant with access to all tools    | All tools                                     |
+| Agent       | Description                                       | Tools Used                                    |
+|-------------|---------------------------------------------------|-----------------------------------------------|
+| Planner     | Generates structured task plans from startup context | (structured output via Zod schema)          |
+| Twitter     | Composes and posts tweets via Twitter API v2      | generateTweet, scheduleTweet                  |
+| Outreach    | Writes personalized cold emails, finds leads      | generateEmail, sendEmail, findLeads           |
+| Research    | Competitive analysis and market research          | competitorResearch, webSearch, webScraper, summarize |
+| **Engineer** | **Writes and executes code in E2B sandbox**      | **executeCode, webSearch, webScraper, summarize** |
+| Report      | Generates daily reports + emails them to founder  | (structured output + Resend)                  |
+| Chat        | Interactive assistant with access to all tools    | All tools including executeCode               |
 
 ## Tools
 
@@ -234,15 +264,16 @@ Every agent capability is a standalone tool in `/packages/tools/`:
 | Tool                  | Description                                |
 |-----------------------|--------------------------------------------|
 | `generateTweet`       | Generate engaging tweet content            |
-| `scheduleTweet`       | Schedule a tweet for posting               |
+| `scheduleTweet`       | Post a tweet via Twitter API v2 (real posting) |
 | `generateEmail`       | Write personalized outreach emails         |
-| `sendEmail`           | Send/queue an email                        |
+| `sendEmail`           | Send an email via Resend (real delivery)   |
 | `competitorResearch`  | Analyze competitors                        |
 | `findLeads`           | Generate lead profiles                     |
 | `webSearch`           | Search the web via Exa API                 |
-| `webScraper`          | Fetch and parse web page content           |
+| `webScraper`          | Deep-crawl web pages via Crawl4AI (JS rendering + fallback) |
 | `researchCompanyUrl`  | Auto-research a company from its website   |
 | `summarizeContent`    | Summarize text content                     |
+| `executeCode`         | Run Python/JS/bash code in E2B sandbox     |
 
 Adding a new tool: create a file in `packages/tools/src/` using the Vercel AI SDK `tool()` function with a Zod `parameters` schema.
 

@@ -1,6 +1,7 @@
 import { runTwitterAgent, type TwitterAgentInput } from "./twitter.agent.js";
 import { runOutreachAgent, type OutreachAgentInput } from "./outreach.agent.js";
 import { runResearchAgent, type ResearchAgentInput } from "./research.agent.js";
+import { runEngineerAgent, type EngineerAgentInput } from "./engineer.agent.js";
 
 export type AgentExecutionInput = {
   taskDescription: string;
@@ -31,6 +32,8 @@ const executionAgents: Record<string, AgentExecutor> = {
     runOutreachAgent(input as OutreachAgentInput),
   research: (input: AgentExecutionInput) =>
     runResearchAgent(input as ResearchAgentInput),
+  engineer: (input: AgentExecutionInput) =>
+    runEngineerAgent(input as EngineerAgentInput),
 };
 
 export function getExecutionAgent(
@@ -48,6 +51,7 @@ export const AGENT_DISPLAY_NAMES: Record<string, string> = {
   twitter: "Twitter Agent",
   outreach: "Outreach Agent",
   research: "Research Agent",
+  engineer: "Engineering Agent",
   report: "Report Generator",
   chat: "Chat Assistant",
 };

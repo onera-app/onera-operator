@@ -8,3 +8,4 @@ export { webSearch } from "./web-search.js";
 export { webScraper } from "./web-scraper.js";
 export { summarizeContent } from "./summarize-content.js";
 export { researchCompanyUrl } from "./research-company-url.js";
+export { executeCode } from "./execute-code.js";
