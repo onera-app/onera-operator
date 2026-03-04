@@ -56,18 +56,25 @@ jobs:
 
       - name: Package standalone output
         run: |
-          # Next.js standalone output lives at packages/frontend/.next/standalone
-          # Copy static assets into it (required by Next.js standalone)
-          cp -r packages/frontend/.next/static \
-            packages/frontend/.next/standalone/packages/frontend/.next/static
+          STANDALONE=packages/frontend/.next/standalone
+          echo "=== Standalone root ==="
+          ls "$STANDALONE"
+          echo "=== Checking for server.js ==="
+          find "$STANDALONE" -name "server.js" -maxdepth 4
+
+          # Copy static assets into the right place inside standalone
+          # In a monorepo the path mirrors the repo structure
+          STATIC_DEST="$STANDALONE/packages/frontend/.next/static"
+          mkdir -p "$STATIC_DEST"
+          cp -r packages/frontend/.next/static/. "$STATIC_DEST/"
 
           # Copy public dir if it exists (optional in Next.js)
           if [ -d packages/frontend/public ]; then
             cp -r packages/frontend/public \
-              packages/frontend/.next/standalone/packages/frontend/public
+              "$STANDALONE/packages/frontend/public"
           fi
 
-          cd packages/frontend/.next/standalone
+          cd "$STANDALONE"
           zip -r ${{ github.workspace }}/frontend-deploy.zip . -x "*.map" -q
           echo "Package size: $(du -sh ${{ github.workspace }}/frontend-deploy.zip | cut -f1)"
 
