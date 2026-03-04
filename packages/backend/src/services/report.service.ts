@@ -7,7 +7,20 @@ export async function createDailyReport(data: {
   tasksPlanned?: string;
   metrics?: string;
 }) {
-  return prisma.dailyReport.create({ data });
+  // Calculate day number since project creation
+  const project = await prisma.project.findUnique({
+    where: { id: data.projectId },
+    select: { createdAt: true },
+  });
+
+  const createdAt = project?.createdAt ?? new Date();
+  const now = new Date();
+  const diffMs = now.getTime() - createdAt.getTime();
+  const day = Math.max(1, Math.floor(diffMs / (1000 * 60 * 60 * 24)) + 1);
+
+  return prisma.dailyReport.create({
+    data: { ...data, day },
+  });
 }
 
 export async function getLatestReport(projectId: string) {
