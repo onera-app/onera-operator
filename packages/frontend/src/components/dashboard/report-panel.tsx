@@ -71,9 +71,26 @@ function parseJsonField(value: string | null): string[] {
   if (!value) return [];
   try {
     const parsed = JSON.parse(value);
-    if (Array.isArray(parsed)) return parsed.map(String);
-    if (typeof parsed === "object") {
-      return Object.values(parsed).map(String);
+    if (Array.isArray(parsed)) {
+      return parsed.map((item) => {
+        if (typeof item === "string") return item;
+        if (typeof item === "object" && item !== null) {
+          // Handle {title, category} objects from report worker
+          const obj = item as Record<string, unknown>;
+          return (obj.title as string) || (obj.name as string) || JSON.stringify(item);
+        }
+        return String(item);
+      });
+    }
+    if (typeof parsed === "object" && parsed !== null) {
+      return Object.values(parsed as Record<string, unknown>).map((v) => {
+        if (typeof v === "string") return v;
+        if (typeof v === "object" && v !== null) {
+          const obj = v as Record<string, unknown>;
+          return (obj.title as string) || JSON.stringify(v);
+        }
+        return String(v);
+      });
     }
     return [String(parsed)];
   } catch {
