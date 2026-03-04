@@ -3,28 +3,38 @@
 import { useEffect, useState, useCallback } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { api, type TaskMetrics } from "@/lib/api-client";
+import { api, type TaskMetrics, type AgentStatus } from "@/lib/api-client";
 import { formatRelativeTime } from "@/lib/utils";
 
 interface CompanyPanelProps {
   projectName: string;
   projectId?: string;
   credits: number;
+  projectWebsite?: string | null;
+  projectDescription?: string | null;
 }
 
 export function CompanyPanel({
   projectName,
   projectId,
   credits,
+  projectWebsite,
+  projectDescription,
 }: CompanyPanelProps) {
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [metrics, setMetrics] = useState<TaskMetrics | null>(null);
+  const [agents, setAgents] = useState<AgentStatus[]>([]);
+  const [triggering, setTriggering] = useState(false);
 
-  const fetchMetrics = useCallback(async () => {
+  const fetchData = useCallback(async () => {
     if (!projectId) return;
     try {
-      const data = await api.tasks.metrics(projectId);
-      setMetrics(data);
+      const [metricsData, agentsData] = await Promise.all([
+        api.tasks.metrics(projectId),
+        api.agents.list(),
+      ]);
+      setMetrics(metricsData);
+      setAgents(agentsData);
       setLastUpdated(new Date());
     } catch {
       // ignore
@@ -32,13 +42,26 @@ export function CompanyPanel({
   }, [projectId]);
 
   useEffect(() => {
-    fetchMetrics();
-    const interval = setInterval(fetchMetrics, 5000);
+    fetchData();
+    const interval = setInterval(fetchData, 5000);
     return () => clearInterval(interval);
-  }, [fetchMetrics]);
+  }, [fetchData]);
 
-  const isWorking =
-    metrics && (metrics.inProgress > 0 || metrics.pending > 0);
+  async function handleTriggerLoop() {
+    if (!projectId) return;
+    setTriggering(true);
+    try {
+      await api.loop.trigger(projectId);
+    } catch {
+      // ignore
+    } finally {
+      setTriggering(false);
+      fetchData();
+    }
+  }
+
+  const runningAgents = agents.filter((a) => a.status === "running");
+  const isWorking = metrics && (metrics.inProgress > 0 || metrics.pending > 0);
   const status = metrics?.inProgress
     ? "Working"
     : metrics?.pending
@@ -47,11 +70,26 @@ export function CompanyPanel({
 
   return (
     <div className="space-y-5">
-      {/* Company name */}
+      {/* Company name and details */}
       <div>
         <h2 className="text-lg font-bold text-primary tracking-tight">
           {projectName}
         </h2>
+        {projectDescription && (
+          <p className="text-[10px] text-muted-foreground mt-1 leading-relaxed line-clamp-3">
+            {projectDescription}
+          </p>
+        )}
+        {projectWebsite && (
+          <a
+            href={projectWebsite}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[10px] text-primary hover:underline mt-1 block truncate"
+          >
+            {projectWebsite.replace(/^https?:\/\//, "")}
+          </a>
+        )}
       </div>
 
       {/* Status indicator */}
@@ -64,9 +102,7 @@ export function CompanyPanel({
 |______|`}
           </div>
           <div>
-            <Badge
-              variant={isWorking ? "default" : "success"}
-            >
+            <Badge variant={isWorking ? "default" : "success"}>
               {status}
             </Badge>
             <p className="text-[10px] text-muted-foreground mt-1 uppercase tracking-wider">
@@ -80,6 +116,21 @@ export function CompanyPanel({
         </div>
       </div>
 
+      {/* Active agents */}
+      {runningAgents.length > 0 && (
+        <div className="border border-dashed border-border p-3">
+          <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2 font-semibold">
+            Active Agents
+          </p>
+          {runningAgents.map((agent) => (
+            <div key={agent.id} className="flex items-center gap-2 text-xs">
+              <span className="text-primary animate-pulse">●</span>
+              <span className="text-foreground">{agent.displayName}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* Credits */}
       <div className="border border-dashed border-border p-3">
         <div className="flex items-center justify-between">
@@ -89,6 +140,17 @@ export function CompanyPanel({
           <span className="text-lg font-bold text-primary">{credits}</span>
         </div>
       </div>
+
+      {/* Run agent loop button */}
+      <Button
+        size="sm"
+        variant="outline"
+        className="w-full text-[10px] uppercase tracking-wider"
+        onClick={handleTriggerLoop}
+        disabled={triggering || !projectId}
+      >
+        {triggering ? "Triggering..." : "Run Agent Loop"}
+      </Button>
 
       {/* Separator */}
       <div className="border-t border-dashed border-border" />
@@ -128,32 +190,12 @@ export function CompanyPanel({
         </div>
       )}
 
-      {/* Separator */}
-      <div className="border-t border-dashed border-border" />
-
-      {/* Business metrics placeholder */}
-      <div>
-        <h4 className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-3">
-          Business
-        </h4>
-        <div className="space-y-2">
-          <div className="flex items-center justify-between text-xs">
-            <span className="text-muted-foreground">Visitors</span>
-            <span className="font-bold text-primary">0</span>
-          </div>
-          <div className="flex items-center justify-between text-xs">
-            <span className="text-muted-foreground">Revenue</span>
-            <span className="font-bold text-primary">$0.00</span>
-          </div>
-        </div>
-      </div>
-
       {/* Last updated */}
       <div className="text-[10px] text-muted-foreground">
         Updated {formatRelativeTime(lastUpdated.toISOString())}
         <button
           className="ml-1 text-primary hover:underline"
-          onClick={fetchMetrics}
+          onClick={fetchData}
         >
           (refresh)
         </button>
