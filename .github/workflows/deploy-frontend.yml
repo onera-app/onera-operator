@@ -1,6 +1,6 @@
 # =============================================================================
 # Deploy Frontend → Azure Web App (onera-orchd-frontend)
-# Builds Next.js standalone output, zips it, deploys via publish profile
+# Builds Next.js standalone output, zips it, deploys via Azure CLI
 # =============================================================================
 name: Deploy Frontend
 
@@ -63,7 +63,7 @@ jobs:
           mkdir -p "$STATIC_DEST"
           cp -r packages/frontend/.next/static/. "$STATIC_DEST/"
 
-          # Copy public dir if it exists (optional in Next.js)
+          # Copy public dir if it exists
           if [ -d packages/frontend/public ]; then
             cp -r packages/frontend/public \
               "$STANDALONE/packages/frontend/public"
@@ -71,7 +71,12 @@ jobs:
 
           cd "$STANDALONE"
           zip -r "${{ github.workspace }}/frontend-deploy.zip" . -x "*.map" -q
-          echo "Package size: $(du -sh ${{ github.workspace }}/frontend-deploy.zip | cut -f1)"
+          FILE_COUNT=$(unzip -l "${{ github.workspace }}/frontend-deploy.zip" | tail -1 | awk '{print $2}')
+          echo "Package size: $(du -sh ${{ github.workspace }}/frontend-deploy.zip | cut -f1), files: $FILE_COUNT"
+          if [ "$FILE_COUNT" -lt 10 ]; then
+            echo "ERROR: Zip has too few files ($FILE_COUNT). Build likely failed."
+            exit 1
+          fi
 
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
@@ -79,3 +84,6 @@ jobs:
           app-name: onera-orchd-frontend
           publish-profile: ${{ secrets.AZURE_WEBAPP_FRONTEND_PUBLISH_PROFILE }}
           package: ${{ github.workspace }}/frontend-deploy.zip
+          type: zip
+          clean: true
+          restart: true
