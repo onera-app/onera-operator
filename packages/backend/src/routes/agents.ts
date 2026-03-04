@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { getAgentStatuses } from "../services/execution.service.js";
 import { getRecentExecutionLogs } from "../services/execution.service.js";
 import { getTaskMetrics } from "../services/task.service.js";
+import { AGENT_DISPLAY_NAMES } from "@onera/agents";
 import { prisma } from "@onera/database";
 
 export async function agentRoutes(app: FastifyInstance) {
@@ -61,7 +62,7 @@ export async function agentRoutes(app: FastifyInstance) {
       // If no activity yet, show system status
       if (lines.length === 0) {
         lines.push("System initialized");
-        lines.push("Agents: planner, twitter, outreach, research, report");
+        lines.push(`Agents: ${Object.keys(AGENT_DISPLAY_NAMES).join(", ")}`);
 
         if (projectId) {
           try {

@@ -1,18 +1,25 @@
 import { NextRequest } from "next/server";
+import { auth } from "@clerk/nextjs/server";
 
 const BACKEND_URL =
   process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3001";
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
+    // Clerk middleware already protects this route; get userId to scope project access
+    const { userId } = await auth();
+
+    const body = await req.json() as Record<string, unknown>;
+
+    // Inject authenticated userId so backend scopes project lookup to this user
+    const enrichedBody = { ...body, userId };
 
     const response = await fetch(`${BACKEND_URL}/api/chat`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(body),
+      body: JSON.stringify(enrichedBody),
     });
 
     if (!response.ok) {

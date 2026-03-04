@@ -7,6 +7,7 @@ import { api, type Project } from "@/lib/api-client";
 import { CompanyPanel } from "@/components/dashboard/company-panel";
 import { TasksPanel } from "@/components/dashboard/tasks-panel";
 import { TwitterPanel } from "@/components/dashboard/twitter-panel";
+import { EngineerPanel } from "@/components/dashboard/engineer-panel";
 import { ReportPanel } from "@/components/dashboard/report-panel";
 import { ChatBar } from "@/components/dashboard/chat-bar";
 import { Button } from "@/components/ui/button";
@@ -114,7 +115,7 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* 4-column dashboard grid */}
+      {/* 5-column dashboard grid */}
       <div className="flex-1 overflow-hidden">
         <div className="grid grid-cols-12 h-full">
           {/* Column 1: Company status */}
@@ -136,14 +137,21 @@ export default function DashboardPage() {
           </div>
 
           {/* Column 3: Twitter + Email */}
-          <div className="col-span-3 border-r border-dashed border-border overflow-y-auto scrollbar-thin p-4">
+          <div className="col-span-2 border-r border-dashed border-border overflow-y-auto scrollbar-thin p-4">
             {selectedProject && (
               <TwitterPanel key={selectedProject.id} projectId={selectedProject.id} />
             )}
           </div>
 
-          {/* Column 4: Daily Report */}
-          <div className="col-span-4 overflow-y-auto scrollbar-thin p-4">
+          {/* Column 4: Engineering */}
+          <div className="col-span-2 border-r border-dashed border-border overflow-y-auto scrollbar-thin p-4">
+            {selectedProject && (
+              <EngineerPanel key={selectedProject.id} projectId={selectedProject.id} />
+            )}
+          </div>
+
+          {/* Column 5: Daily Report */}
+          <div className="col-span-3 overflow-y-auto scrollbar-thin p-4">
             {selectedProject && (
               <ReportPanel key={selectedProject.id} projectId={selectedProject.id} />
             )}

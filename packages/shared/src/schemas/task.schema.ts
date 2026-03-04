@@ -47,7 +47,7 @@ export const plannedTaskSchema = z.object({
     .string()
     .nullable()
     .describe(
-      "The agent that should handle this task (planner, twitter, outreach, research, report) or null if manual"
+      "The agent that should handle this task (twitter, outreach, research, engineer) or null if manual. Use 'engineer' for ENGINEERING tasks, 'twitter' for TWITTER tasks, 'outreach' for OUTREACH tasks, 'research' for RESEARCH tasks."
     ),
 });
 
