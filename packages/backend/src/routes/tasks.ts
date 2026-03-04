@@ -36,6 +36,19 @@ export async function taskRoutes(app: FastifyInstance) {
     return reply.send(tasks);
   });
 
+  // Get task metrics for a project — must be before /api/tasks/:id to avoid route shadowing
+  app.get<{ Querystring: { projectId: string } }>(
+    "/api/tasks/metrics",
+    async (request, reply) => {
+      const { projectId } = request.query;
+      if (!projectId) {
+        return reply.code(400).send({ error: "projectId is required" });
+      }
+      const metrics = await getTaskMetrics(projectId);
+      return reply.send(metrics);
+    }
+  );
+
   // Get a single task with execution logs
   app.get<{ Params: { id: string } }>(
     "/api/tasks/:id",
@@ -112,16 +125,4 @@ export async function taskRoutes(app: FastifyInstance) {
     }
   );
 
-  // Get task metrics for a project
-  app.get<{ Querystring: { projectId: string } }>(
-    "/api/tasks/metrics",
-    async (request, reply) => {
-      const { projectId } = request.query;
-      if (!projectId) {
-        return reply.code(400).send({ error: "projectId is required" });
-      }
-      const metrics = await getTaskMetrics(projectId);
-      return reply.send(metrics);
-    }
-  );
 }

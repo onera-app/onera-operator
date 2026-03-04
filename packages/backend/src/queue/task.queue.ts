@@ -33,7 +33,9 @@ export async function enqueueTaskExecution(
   job: TaskExecutionJob
 ): Promise<void> {
   const queue = getTaskQueue();
-  await queue.add(`execute-${job.agentName}-${job.taskId}`, job);
+  await queue.add(`execute-${job.agentName}-${job.taskId}`, job, {
+    jobId: job.taskId, // Deduplicate: BullMQ ignores duplicate jobIds already in queue
+  });
   console.log(
     `[onera-queue] Enqueued task "${job.taskTitle}" for agent "${job.agentName}"`
   );

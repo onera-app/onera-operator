@@ -55,6 +55,8 @@ export function startTaskWorker(): Worker<TaskExecutionJob> {
             "FAILED",
             JSON.stringify({ error: "Insufficient credits" })
           );
+          // Reset agent status — was set to "running" above
+          await upsertAgentStatus(agentName, displayName, { status: "idle" });
           return;
         }
       }

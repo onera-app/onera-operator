@@ -108,7 +108,12 @@ export function startReportWorker(): Worker<SchedulerJob> {
                 priority: t.priority,
               }))
             ),
-            metrics: JSON.stringify(metrics),
+            metrics: JSON.stringify({
+              ...metrics,
+              highlights: report.highlights,
+              blockers: report.blockers,
+              nextSteps: report.nextSteps,
+            }),
           });
 
           console.log(

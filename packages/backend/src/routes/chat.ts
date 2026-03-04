@@ -19,15 +19,18 @@ export async function chatRoutes(app: FastifyInstance) {
     // Build project context
     let projectContext = "No project context available. Ask the user to set up a project first.";
 
-    if (projectId) {
+    let resolvedProjectId = projectId;
+
+    if (resolvedProjectId) {
       try {
-        projectContext = await buildProjectContext(projectId);
+        projectContext = await buildProjectContext(resolvedProjectId);
       } catch {
-        // Fallback: try to get the first available project
+        // Invalid projectId — fall through to first-project lookup
+        resolvedProjectId = undefined;
       }
     }
 
-    if (!projectId) {
+    if (!resolvedProjectId) {
       const firstProject = await prisma.project.findFirst({
         orderBy: { updatedAt: "desc" },
       });
