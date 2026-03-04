@@ -81,10 +81,16 @@ export default function LandingPage() {
             <Button asChild size="lg">
               <Link href="/login">Get Started &rarr;</Link>
             </Button>
-            <span className="text-xs text-muted-foreground">
-              No credit card &middot; 100 free credits
-            </span>
+            <Link
+              href="/live"
+              className="text-xs text-muted-foreground hover:text-primary transition-colors underline underline-offset-4"
+            >
+              Watch it live &rsaquo;
+            </Link>
           </div>
+          <p className="mt-3 text-[10px] text-muted-foreground">
+            No credit card &middot; 100 free credits
+          </p>
         </div>
       </main>
 
