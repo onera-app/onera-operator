@@ -60,7 +60,13 @@ jobs:
       - name: Run database migrations
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
-        run: pnpm --filter @onera/database exec prisma migrate deploy
+        run: |
+          # Wake up Neon DB (free tier suspends after inactivity)
+          pnpm --filter @onera/database exec prisma db execute --stdin <<< "SELECT 1" || true
+          sleep 3
+          # Run migrations with retry
+          pnpm --filter @onera/database exec prisma migrate deploy || \
+            (echo "Retry after 10s..." && sleep 10 && pnpm --filter @onera/database exec prisma migrate deploy)
 
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
