@@ -15,18 +15,24 @@ export default function DashboardPage() {
   const { user } = useUser();
   const [projects, setProjects] = useState<Project[]>([]);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const [credits, setCredits] = useState<number>(100);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
     const userId = user?.id;
-    api.projects
-      .list(userId)
-      .then((p) => {
+    if (!userId) return;
+
+    Promise.all([
+      api.projects.list(userId),
+      api.users.credits(userId).catch(() => ({ credits: 100 })),
+    ])
+      .then(([p, creditsData]) => {
         setProjects(p);
         if (p.length > 0) {
           setSelectedProject(p[0]!);
         }
+        setCredits(creditsData.credits);
       })
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -61,6 +67,30 @@ export default function DashboardPage() {
 
   return (
     <div className="flex flex-col h-[calc(100vh-5.5rem)]">
+      {/* Project selector — shown when user has multiple projects */}
+      {projects.length > 1 && (
+        <div className="border-b border-dashed border-border px-4 py-2 flex items-center gap-3 shrink-0">
+          <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+            Project:
+          </span>
+          <div className="flex items-center gap-2 overflow-x-auto scrollbar-thin">
+            {projects.map((p) => (
+              <button
+                key={p.id}
+                onClick={() => setSelectedProject(p)}
+                className={`text-xs px-3 py-1 border transition-colors shrink-0 ${
+                  selectedProject?.id === p.id
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "border-dashed border-border text-muted-foreground hover:border-primary hover:text-primary"
+                }`}
+              >
+                {p.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* 4-column dashboard grid */}
       <div className="flex-1 overflow-hidden">
         <div className="grid grid-cols-12 h-full">
@@ -69,7 +99,9 @@ export default function DashboardPage() {
             <CompanyPanel
               projectName={selectedProject?.name || ""}
               projectId={selectedProject?.id}
-              credits={100}
+              credits={credits}
+              projectWebsite={selectedProject?.website}
+              projectDescription={selectedProject?.description}
             />
           </div>
 
