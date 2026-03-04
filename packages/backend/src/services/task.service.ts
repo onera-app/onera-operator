@@ -118,7 +118,9 @@ export async function getRecentCompletedTasks(
 }
 
 export async function getTaskMetrics(projectId: string) {
-  const [completed, pending, failed, inProgress] = await Promise.all([
+  const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+  const [completed, pending, failed, inProgress, completedToday] = await Promise.all([
     prisma.task.count({
       where: { projectId, status: TaskStatus.COMPLETED },
     }),
@@ -131,7 +133,14 @@ export async function getTaskMetrics(projectId: string) {
     prisma.task.count({
       where: { projectId, status: TaskStatus.IN_PROGRESS },
     }),
+    prisma.task.count({
+      where: {
+        projectId,
+        status: TaskStatus.COMPLETED,
+        completedAt: { gte: since24h },
+      },
+    }),
   ]);
 
-  return { completed, pending, failed, inProgress };
+  return { completed, pending, failed, inProgress, completedToday };
 }

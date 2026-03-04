@@ -179,6 +179,7 @@ export interface TaskMetrics {
   pending: number;
   failed: number;
   inProgress: number;
+  completedToday: number;
 }
 
 export interface AgentStatus {

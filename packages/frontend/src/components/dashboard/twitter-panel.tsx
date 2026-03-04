@@ -132,7 +132,7 @@ export function TwitterPanel({ projectId }: TwitterPanelProps) {
       )}
 
       <div className="text-[10px] text-muted-foreground">
-        {tweets.length} tweet{tweets.length !== 1 ? "s" : ""} generated
+        {tweets.length > 0 ? `+ ${tweets.length} tweet${tweets.length !== 1 ? "s" : ""} in the past 24h` : `${tweets.length} tweets generated`}
       </div>
 
       {/* Separator */}
@@ -178,7 +178,7 @@ export function TwitterPanel({ projectId }: TwitterPanelProps) {
       )}
 
       <div className="text-[10px] text-muted-foreground">
-        {emails.length} email{emails.length !== 1 ? "s" : ""} sent
+        {emails.length > 0 ? `+ ${emails.length} email${emails.length !== 1 ? "s" : ""} in the past 24h` : `${emails.length} emails sent`}
       </div>
     </div>
   );

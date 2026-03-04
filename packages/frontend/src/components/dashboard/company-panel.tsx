@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { api, type TaskMetrics, type AgentStatus } from "@/lib/api-client";
+import { api, type TaskMetrics, type AgentStatus, type Project } from "@/lib/api-client";
 import { formatRelativeTime } from "@/lib/utils";
 
 interface CompanyPanelProps {
@@ -24,17 +24,21 @@ export function CompanyPanel({
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [metrics, setMetrics] = useState<TaskMetrics | null>(null);
   const [agents, setAgents] = useState<AgentStatus[]>([]);
+  const [project, setProject] = useState<Project | null>(null);
   const [triggering, setTriggering] = useState(false);
+  const [showIntelligence, setShowIntelligence] = useState(false);
 
   const fetchData = useCallback(async () => {
     if (!projectId) return;
     try {
-      const [metricsData, agentsData] = await Promise.all([
+      const [metricsData, agentsData, projectData] = await Promise.all([
         api.tasks.metrics(projectId),
         api.agents.list(),
+        api.projects.get(projectId),
       ]);
       setMetrics(metricsData);
       setAgents(agentsData);
+      setProject(projectData);
       setLastUpdated(new Date());
     } catch {
       // ignore
@@ -67,6 +71,27 @@ export function CompanyPanel({
     : metrics?.pending
       ? "Planning"
       : "Active";
+
+  // Parse JSON fields for display
+  const competitors = (() => {
+    if (!project?.competitors) return [];
+    try {
+      const parsed = JSON.parse(project.competitors);
+      return Array.isArray(parsed) ? parsed.slice(0, 3) : [project.competitors];
+    } catch {
+      return [project.competitors];
+    }
+  })();
+
+  const goals = (() => {
+    if (!project?.goals) return [];
+    try {
+      const parsed = JSON.parse(project.goals);
+      return Array.isArray(parsed) ? parsed.slice(0, 3) : [project.goals];
+    } catch {
+      return [project.goals];
+    }
+  })();
 
   return (
     <div className="space-y-5">
@@ -116,18 +141,43 @@ export function CompanyPanel({
         </div>
       </div>
 
-      {/* Active agents */}
-      {runningAgents.length > 0 && (
-        <div className="border border-dashed border-border p-3">
-          <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2 font-semibold">
-            Active Agents
+      {/* All agents roster */}
+      {agents.length > 0 && (
+        <div className="border border-dashed border-border p-3 space-y-2">
+          <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+            Agents
           </p>
-          {runningAgents.map((agent) => (
-            <div key={agent.id} className="flex items-center gap-2 text-xs">
-              <span className="text-primary animate-pulse">●</span>
-              <span className="text-foreground">{agent.displayName}</span>
-            </div>
-          ))}
+          {agents.map((agent) => {
+            const isRunning = agent.status === "running";
+            const isError = agent.status === "error";
+            return (
+              <div key={agent.id} className="flex items-center justify-between gap-1">
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <span
+                    className={`text-[10px] shrink-0 ${
+                      isRunning
+                        ? "text-primary animate-pulse"
+                        : isError
+                          ? "text-destructive"
+                          : "text-muted-foreground"
+                    }`}
+                  >
+                    {isRunning ? "●" : isError ? "✕" : "○"}
+                  </span>
+                  <span
+                    className={`text-[10px] truncate ${
+                      isRunning ? "text-foreground font-semibold" : "text-muted-foreground"
+                    }`}
+                  >
+                    {agent.displayName}
+                  </span>
+                </div>
+                <span className="text-[9px] text-muted-foreground/60 shrink-0">
+                  {agent.tasksCompleted > 0 ? `${agent.tasksCompleted}✓` : agent.lastRunAt ? formatRelativeTime(agent.lastRunAt) : "—"}
+                </span>
+              </div>
+            );
+          })}
         </div>
       )}
 
@@ -154,6 +204,57 @@ export function CompanyPanel({
 
       {/* Separator */}
       <div className="border-t border-dashed border-border" />
+
+      {/* Project intelligence */}
+      {(project?.product || project?.targetUsers || competitors.length > 0 || goals.length > 0) && (
+        <div>
+          <button
+            className="flex items-center justify-between w-full text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2 hover:text-primary transition-colors"
+            onClick={() => setShowIntelligence((v) => !v)}
+          >
+            <span>Intelligence</span>
+            <span className="opacity-50">{showIntelligence ? "▲" : "▼"}</span>
+          </button>
+          {showIntelligence && (
+            <div className="space-y-2">
+              {project?.product && (
+                <div>
+                  <p className="text-[9px] uppercase tracking-wider text-muted-foreground/60 mb-0.5">Product</p>
+                  <p className="text-[10px] leading-relaxed line-clamp-3">{project.product}</p>
+                </div>
+              )}
+              {project?.targetUsers && (
+                <div>
+                  <p className="text-[9px] uppercase tracking-wider text-muted-foreground/60 mb-0.5">Target Users</p>
+                  <p className="text-[10px] leading-relaxed line-clamp-2">{project.targetUsers}</p>
+                </div>
+              )}
+              {competitors.length > 0 && (
+                <div>
+                  <p className="text-[9px] uppercase tracking-wider text-muted-foreground/60 mb-0.5">Competitors</p>
+                  <div className="flex flex-wrap gap-1">
+                    {competitors.map((c: string, i: number) => (
+                      <span key={i} className="text-[9px] border border-dashed border-border px-1.5 py-0.5 text-muted-foreground">
+                        {c}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {goals.length > 0 && (
+                <div>
+                  <p className="text-[9px] uppercase tracking-wider text-muted-foreground/60 mb-0.5">Goals</p>
+                  <div className="space-y-0.5">
+                    {goals.map((g: string, i: number) => (
+                      <p key={i} className="text-[10px] leading-relaxed">• {g}</p>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Task metrics */}
       {metrics && (
