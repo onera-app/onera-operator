@@ -4,8 +4,6 @@ export { PrismaClient } from "@prisma/client";
 // Re-export generated types from Prisma
 export type {
   User,
-  Account,
-  Session,
   Project,
   Task,
   ExecutionLog,

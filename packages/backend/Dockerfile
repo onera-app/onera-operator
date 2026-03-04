@@ -42,4 +42,4 @@ COPY --from=builder /app/pnpm-workspace.yaml ./
 COPY --from=builder /app/package.json ./
 
 EXPOSE 3001
-CMD ["node", "packages/backend/dist/index.js"]
+CMD ["sh", "-c", "node node_modules/.bin/prisma db push --schema packages/database/prisma/schema.prisma --skip-generate && node packages/backend/dist/index.js"]
