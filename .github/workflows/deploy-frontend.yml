@@ -57,11 +57,15 @@ jobs:
       - name: Package standalone output
         run: |
           # Next.js standalone output lives at packages/frontend/.next/standalone
-          # Copy static and public assets into it (required by Next.js standalone)
+          # Copy static assets into it (required by Next.js standalone)
           cp -r packages/frontend/.next/static \
             packages/frontend/.next/standalone/packages/frontend/.next/static
-          cp -r packages/frontend/public \
-            packages/frontend/.next/standalone/packages/frontend/public
+
+          # Copy public dir if it exists (optional in Next.js)
+          if [ -d packages/frontend/public ]; then
+            cp -r packages/frontend/public \
+              packages/frontend/.next/standalone/packages/frontend/public
+          fi
 
           cd packages/frontend/.next/standalone
           zip -r ${{ github.workspace }}/frontend-deploy.zip . -x "*.map" -q
