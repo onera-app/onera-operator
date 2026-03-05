@@ -118,22 +118,22 @@ export function CompanyPanel({
     <div className="space-y-5">
       {/* Company name and details */}
       <div>
-        <div className="flex items-start justify-between gap-1">
+        <div className="flex items-start justify-between gap-2">
           <h2 className="font-serif text-2xl font-extrabold text-primary tracking-tight">
             {projectName}
           </h2>
           {projectId && (
             <Link
               href={`/projects/${projectId}`}
-              className="text-[9px] text-muted-foreground hover:text-primary transition-colors uppercase tracking-wider shrink-0 mt-1"
+              className="text-xs text-muted-foreground hover:text-primary transition-colors uppercase tracking-wider shrink-0 mt-1"
               title="Project Settings"
             >
-              ⚙ settings
+              settings
             </Link>
           )}
         </div>
         {projectDescription && (
-          <p className="text-[10px] text-muted-foreground mt-1 leading-relaxed line-clamp-3">
+          <p className="text-sm text-muted-foreground mt-1.5 leading-relaxed line-clamp-3">
             {projectDescription}
           </p>
         )}
@@ -142,7 +142,7 @@ export function CompanyPanel({
             href={projectWebsite}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-[10px] text-primary hover:underline mt-1 block truncate"
+            className="text-xs text-primary hover:underline mt-1.5 block truncate"
           >
             {projectWebsite.replace(/^https?:\/\//, "")}
           </a>
@@ -153,7 +153,7 @@ export function CompanyPanel({
       <div className="border border-dashed border-border p-4">
         <div className="flex items-center gap-3">
           {/* ASCII art bot face */}
-          <div className="text-primary text-xs leading-none whitespace-pre font-bold">
+          <div className="text-primary text-sm leading-none whitespace-pre font-bold">
             {`| ^  ^ |
 | -__- |
 |______|`}
@@ -162,7 +162,7 @@ export function CompanyPanel({
             <Badge variant={isWorking ? "default" : "success"}>
               {status}
             </Badge>
-            <p className="text-[10px] text-muted-foreground mt-1 uppercase tracking-wider">
+            <p className="text-xs text-muted-foreground mt-1.5 uppercase tracking-wider">
               {metrics?.inProgress
                 ? `Running ${metrics.inProgress} task${metrics.inProgress > 1 ? "s" : ""}`
                 : metrics?.pending
@@ -182,23 +182,23 @@ export function CompanyPanel({
           title="Agents"
           badge={
             runningAgents.length > 0 ? (
-              <span className="text-[10px] text-primary font-mono animate-pulse">
+              <span className="text-xs text-primary font-mono animate-pulse">
                 {runningAgents.length} active
               </span>
             ) : undefined
           }
         >
-          <div className="border border-dashed border-border p-3 space-y-2">
+          <div className="border border-dashed border-border p-3 space-y-2.5">
             {agents.map((agent) => {
               const isRunning = agent.status === "running";
               const isError = agent.status === "error";
               const canTrigger = executableAgents.has(agent.name) && !isRunning;
               const isTriggeringThis = triggeringAgent === agent.name;
               return (
-                <div key={agent.id} className="flex items-center justify-between gap-1">
-                  <div className="flex items-center gap-1.5 min-w-0">
+                <div key={agent.id} className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
                     <span
-                      className={`text-[10px] shrink-0 ${
+                      className={`text-xs shrink-0 ${
                         isRunning
                           ? "text-primary animate-pulse"
                           : isError
@@ -209,28 +209,28 @@ export function CompanyPanel({
                       {isRunning ? "●" : isError ? "✕" : "○"}
                     </span>
                     <span
-                      className={`text-[10px] truncate ${
+                      className={`text-[13px] truncate ${
                         isRunning ? "text-foreground font-semibold" : "text-muted-foreground"
                       }`}
                     >
                       {agent.displayName}
                     </span>
                   </div>
-                  <div className="flex items-center gap-1.5 shrink-0">
+                  <div className="flex items-center gap-2 shrink-0">
                     {canTrigger && (
                       <Button
                         onClick={() => handleTriggerAgent(agent.name)}
                         disabled={isTriggeringThis || !projectId}
                         variant="outline"
                         size="sm"
-                        className="h-5 border-dashed px-1.5 py-0 text-[8px]"
+                        className="h-6 border-dashed px-2 py-0 text-[11px]"
                         title={`Run all pending ${agent.displayName} tasks`}
                       >
                         {isTriggeringThis ? "..." : "Run"}
                       </Button>
                     )}
-                    <span className="text-[9px] text-muted-foreground/60">
-                      {agent.tasksCompleted > 0 ? `${agent.tasksCompleted}✓` : agent.lastRunAt ? formatRelativeTime(agent.lastRunAt) : "—"}
+                    <span className="text-xs text-muted-foreground/60">
+                      {agent.tasksCompleted > 0 ? `${agent.tasksCompleted}` : agent.lastRunAt ? formatRelativeTime(agent.lastRunAt) : ""}
                     </span>
                   </div>
                 </div>
@@ -244,9 +244,9 @@ export function CompanyPanel({
       {userId ? (
         <BillingSection userId={userId} />
       ) : (
-        <div className="border border-dashed border-border p-3">
+        <div className="border border-dashed border-border p-4">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+            <span className="text-xs uppercase tracking-wider text-muted-foreground">
               Credits
             </span>
             <span className="text-lg font-bold text-primary">{credits}</span>
@@ -258,7 +258,7 @@ export function CompanyPanel({
       <Button
         size="sm"
         variant="outline"
-        className="w-full text-[10px] uppercase tracking-wider"
+        className="w-full text-xs uppercase tracking-wider"
         onClick={handleTriggerLoop}
         disabled={triggering || !projectId}
       >
@@ -271,25 +271,25 @@ export function CompanyPanel({
       {/* Project intelligence */}
       {(project?.product || project?.targetUsers || competitors.length > 0 || goals.length > 0) && (
         <CollapsibleSection title="Intelligence" defaultOpen={false}>
-          <div className="space-y-2">
+          <div className="space-y-3">
             {project?.product && (
               <div>
-                <p className="text-[9px] uppercase tracking-wider text-muted-foreground/60 mb-0.5">Product</p>
-                <p className="text-[10px] leading-relaxed line-clamp-3">{project.product}</p>
+                <p className="text-xs uppercase tracking-wider text-muted-foreground/60 mb-1">Product</p>
+                <p className="text-[13px] leading-relaxed line-clamp-3">{project.product}</p>
               </div>
             )}
             {project?.targetUsers && (
               <div>
-                <p className="text-[9px] uppercase tracking-wider text-muted-foreground/60 mb-0.5">Target Users</p>
-                <p className="text-[10px] leading-relaxed line-clamp-2">{project.targetUsers}</p>
+                <p className="text-xs uppercase tracking-wider text-muted-foreground/60 mb-1">Target Users</p>
+                <p className="text-[13px] leading-relaxed line-clamp-2">{project.targetUsers}</p>
               </div>
             )}
             {competitors.length > 0 && (
               <div>
-                <p className="text-[9px] uppercase tracking-wider text-muted-foreground/60 mb-0.5">Competitors</p>
-                <div className="flex flex-wrap gap-1">
+                <p className="text-xs uppercase tracking-wider text-muted-foreground/60 mb-1">Competitors</p>
+                <div className="flex flex-wrap gap-1.5">
                   {competitors.map((c: string, i: number) => (
-                    <span key={i} className="text-[9px] border border-dashed border-border px-1.5 py-0.5 text-muted-foreground">
+                    <span key={i} className="text-xs border border-dashed border-border px-2 py-0.5 text-muted-foreground">
                       {c}
                     </span>
                   ))}
@@ -298,10 +298,10 @@ export function CompanyPanel({
             )}
             {goals.length > 0 && (
               <div>
-                <p className="text-[9px] uppercase tracking-wider text-muted-foreground/60 mb-0.5">Goals</p>
-                <div className="space-y-0.5">
+                <p className="text-xs uppercase tracking-wider text-muted-foreground/60 mb-1">Goals</p>
+                <div className="space-y-1">
                   {goals.map((g: string, i: number) => (
-                    <p key={i} className="text-[10px] leading-relaxed">• {g}</p>
+                    <p key={i} className="text-[13px] leading-relaxed">{g}</p>
                   ))}
                 </div>
               </div>
@@ -314,24 +314,24 @@ export function CompanyPanel({
       {metrics && (
         <CollapsibleSection title="Operations">
           <div className="space-y-2">
-            <div className="flex items-center justify-between text-xs">
+            <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">Completed</span>
               <span className="font-bold text-primary">
                 {metrics.completed}
               </span>
             </div>
-            <div className="flex items-center justify-between text-xs">
+            <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">In Progress</span>
               <span className="font-bold text-primary">
                 {metrics.inProgress}
               </span>
             </div>
-            <div className="flex items-center justify-between text-xs">
+            <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">Pending</span>
               <span className="font-bold text-primary">{metrics.pending}</span>
             </div>
             {metrics.failed > 0 && (
-              <div className="flex items-center justify-between text-xs">
+              <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">Failed</span>
                 <span className="font-bold text-destructive">
                   {metrics.failed}
@@ -343,10 +343,10 @@ export function CompanyPanel({
       )}
 
       {/* Last updated */}
-      <div className="text-[10px] text-muted-foreground">
+      <div className="text-xs text-muted-foreground">
         Updated {formatRelativeTime(lastUpdated.toISOString())}
         <button
-          className="ml-1 text-primary hover:underline"
+          className="ml-1.5 text-primary hover:underline"
           onClick={fetchData}
         >
           (refresh)

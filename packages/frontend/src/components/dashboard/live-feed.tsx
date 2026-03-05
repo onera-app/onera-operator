@@ -66,7 +66,6 @@ export function LiveFeed({ projectId }: LiveFeedProps) {
           const event = JSON.parse(e.data) as AgentEvent;
           setEvents((prev) => {
             const next = [...prev, event];
-            // Keep last N events
             return next.length > maxEvents ? next.slice(-maxEvents) : next;
           });
         } catch {
@@ -77,7 +76,6 @@ export function LiveFeed({ projectId }: LiveFeedProps) {
       eventSource.onerror = () => {
         setConnected(false);
         eventSource?.close();
-        // Reconnect after 3s
         retryTimeout = setTimeout(connect, 3000);
       };
     }
@@ -90,7 +88,6 @@ export function LiveFeed({ projectId }: LiveFeedProps) {
     };
   }, [projectId]);
 
-  // Auto-scroll to bottom on new events
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -99,14 +96,14 @@ export function LiveFeed({ projectId }: LiveFeedProps) {
 
   if (events.length === 0) {
     return (
-      <div className="border border-dashed border-border p-3">
-        <div className="flex items-center gap-1.5 mb-2">
-          <span className={`h-1.5 w-1.5 rounded-full ${connected ? "bg-green-500" : "bg-muted-foreground"}`} />
-          <span className="text-[9px] uppercase tracking-wider text-muted-foreground">
+      <div className="border border-dashed border-border p-4">
+        <div className="flex items-center gap-2 mb-2">
+          <span className={`h-2 w-2 rounded-full ${connected ? "bg-green-500" : "bg-muted-foreground"}`} />
+          <span className="text-xs uppercase tracking-wider text-muted-foreground font-medium">
             Live Feed
           </span>
         </div>
-        <p className="text-[9px] text-muted-foreground/60 font-mono">
+        <p className="text-xs text-muted-foreground/60 font-mono">
           Waiting for agent activity...
         </p>
       </div>
@@ -114,32 +111,32 @@ export function LiveFeed({ projectId }: LiveFeedProps) {
   }
 
   return (
-    <div className="border border-dashed border-border p-3">
-      <div className="flex items-center gap-1.5 mb-2">
-        <span className={`h-1.5 w-1.5 rounded-full ${connected ? "bg-green-500 animate-pulse" : "bg-muted-foreground"}`} />
-        <span className="text-[9px] uppercase tracking-wider text-muted-foreground">
+    <div className="border border-dashed border-border p-4">
+      <div className="flex items-center gap-2 mb-3">
+        <span className={`h-2 w-2 rounded-full ${connected ? "bg-green-500 animate-pulse" : "bg-muted-foreground"}`} />
+        <span className="text-xs uppercase tracking-wider text-muted-foreground font-medium">
           Live Feed
         </span>
-        <span className="text-[8px] text-muted-foreground/40 ml-auto">
+        <span className="text-[11px] text-muted-foreground/40 ml-auto">
           {events.length} events
         </span>
       </div>
 
       <div
         ref={scrollRef}
-        className="max-h-64 overflow-y-auto space-y-0.5 font-mono"
+        className="max-h-72 overflow-y-auto space-y-1 font-mono"
       >
         {events.map((event, i) => (
-          <div key={`${event.timestamp}-${i}`} className="flex gap-1.5 items-start">
-            <span className={`text-[9px] shrink-0 w-2 ${TYPE_COLORS[event.type] || "text-muted-foreground"}`}>
+          <div key={`${event.timestamp}-${i}`} className="flex gap-2 items-start">
+            <span className={`text-xs shrink-0 w-3 ${TYPE_COLORS[event.type] || "text-muted-foreground"}`}>
               {TYPE_ICONS[event.type] || "."}
             </span>
             <div className="min-w-0 flex-1">
-              <span className={`text-[9px] break-words ${TYPE_COLORS[event.type] || "text-muted-foreground"}`}>
+              <span className={`text-xs leading-relaxed break-words ${TYPE_COLORS[event.type] || "text-muted-foreground"}`}>
                 {formatEventMessage(event)}
               </span>
             </div>
-            <span className="text-[7px] text-muted-foreground/30 shrink-0 tabular-nums">
+            <span className="text-[10px] text-muted-foreground/40 shrink-0 tabular-nums">
               {formatTime(event.timestamp)}
             </span>
           </div>

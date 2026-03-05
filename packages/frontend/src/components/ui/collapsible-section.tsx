@@ -35,10 +35,10 @@ export function CollapsibleSection({
         onClick={() => setOpen((v) => !v)}
         className="flex w-full items-center gap-2 group cursor-pointer select-none"
       >
-        <span className="text-[9px] text-muted-foreground/50 group-hover:text-primary transition-colors shrink-0">
+        <span className="text-xs text-muted-foreground/50 group-hover:text-primary transition-colors shrink-0">
           {open ? "▼" : "▶"}
         </span>
-        <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider group-hover:text-primary transition-colors">
+        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider group-hover:text-primary transition-colors">
           {title}
         </span>
         {badge && <span className="shrink-0">{badge}</span>}
