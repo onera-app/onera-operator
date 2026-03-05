@@ -184,7 +184,7 @@ export function BillingSection() {
               })}
             </span>
           ) : billing.subscriptionStatus === "active" ? (
-            <span className="text-xs text-green-500">Active -- $29/mo</span>
+            <span className="text-xs text-green-500">Active | $29/mo</span>
           ) : billing.subscriptionStatus === "cancelled" ? (
             <span className="text-xs text-red-400">Cancelled</span>
           ) : billing.subscriptionStatus === "on_hold" ? (
@@ -198,12 +198,12 @@ export function BillingSection() {
 
         {billing.credits <= 10 && billing.credits > 0 && (
           <p className="text-xs text-yellow-500 mt-2 pt-2 border-t border-dashed border-border">
-            Low credits -- top up to keep agents running
+            Low credits. Top up to keep agents running.
           </p>
         )}
         {billing.credits === 0 && (
           <p className="text-xs text-destructive mt-2 pt-2 border-t border-dashed border-border">
-            No credits -- tasks are paused
+            No credits. Tasks are paused.
           </p>
         )}
       </div>

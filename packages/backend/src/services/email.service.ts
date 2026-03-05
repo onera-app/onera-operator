@@ -213,7 +213,7 @@ export async function sendWelcomeEmail(params: {
   const ownerEmail = project.user.email;
   const dashboardUrl = `${process.env.FRONTEND_URL || "http://localhost:3000"}/dashboard`;
 
-  const subject = `Welcome to Onera Operator — ${params.projectName} is live!`;
+  const subject = `Welcome to Onera Operator: ${params.projectName} is live!`;
 
   const plainText = `Hi ${ownerName},
 
@@ -226,11 +226,11 @@ I've just finished researching ${params.projectName} (${params.website}). Here's
 ${params.product ? `Product: ${params.product}` : ""}
 ${params.description ? `About: ${params.description}` : ""}
 
-I'm setting things up for you right now — planning tasks, identifying growth opportunities, and getting to work.
+I'm setting things up for you right now. Planning tasks, identifying growth opportunities, and getting to work.
 
 Check your dashboard to watch me work: ${dashboardUrl}
 
-— Onera Operator
+Onera Operator
    COO for ${params.projectName}
    ${params.companyEmail}`;
 
@@ -306,7 +306,7 @@ Check your dashboard to watch me work: ${dashboardUrl}
 
               <!-- Sign-off -->
               <p style="margin: 0; color: #64748b; font-size: 14px; line-height: 1.6;">
-                &mdash; Onera Operator<br>
+                Onera Operator<br>
                 COO for ${params.projectName}<br>
                 <a href="mailto:${params.companyEmail}" style="color: #2563eb; text-decoration: none;">${params.companyEmail}</a>
               </p>

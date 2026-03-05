@@ -32,9 +32,13 @@ export async function runReportAgent(input: ReportAgentInput) {
       "\n- Note any failures or blockers" +
       "\n- Outline tomorrow's priorities" +
       "\n- Include relevant metrics" +
-      "\n- Use markdown formatting" +
+      "\n- Use markdown formatting with bullet points (use * not -)" +
       "\n- Use checkmarks for completed items" +
-      "\n- Keep it scannable and actionable",
+      "\n- Keep it scannable and actionable" +
+      "\n\nWriting style:" +
+      "\n- NEVER use dashes (--), em-dashes, or en-dashes. Use periods, commas, or colons instead." +
+      "\n- Use * for bullet points in markdown, not -" +
+      "\n- Write naturally, like a real person writing a status update",
     prompt:
       `## Daily Report for ${input.date}\n\n` +
       `## Startup Context\n${input.projectContext}\n\n` +

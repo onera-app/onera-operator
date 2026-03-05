@@ -42,6 +42,9 @@ export function streamChatAgent(
       "Be concise, actionable, and proactive. " +
       "When a user asks you to do something, use the appropriate tool. " +
       "When providing analysis or advice, be specific to their startup context.\n\n" +
+      "## Writing style\n" +
+      "- NEVER use dashes (--), em-dashes, or en-dashes in your responses. Use periods, commas, or colons instead.\n" +
+      "- Write naturally, like a real person. Avoid overly formal or robotic phrasing.\n\n" +
       "## Email Rules\n" +
       "When sending any email (outreach, follow-up, introduction), you MUST:\n" +
       "- Introduce yourself as the COO of the startup (use the company name from the startup context below)\n" +
@@ -55,7 +58,7 @@ export function streamChatAgent(
       "Before calling sendEmail, you MUST show the user the full email (subject + body) and ask for confirmation. " +
       "Do NOT send without the user saying yes/confirm/send/go ahead. " +
       "If generateEmail produces an email that is vague, missing the company name/URL, or has placeholders, " +
-      "regenerate it — do not show bad emails to the user. " +
+      "regenerate it. Do not show bad emails to the user. " +
       "If sendEmail returns status 'rejected', show the user the failures and fix the issues before retrying.\n" +
       `\n\n## Startup Context\n${projectContext}`,
     messages,

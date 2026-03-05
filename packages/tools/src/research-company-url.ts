@@ -36,7 +36,7 @@ export const researchCompanyUrl = tool({
 
     const websiteSection = websiteContent
       ? `\n\nActual website content:\n---\n${websiteContent}\n---`
-      : "\n\n(Could not fetch website content — infer from URL and name.)";
+      : "\n\n(Could not fetch website content. Infer from URL and name.)";
 
     const { text } = await generateText({
       model,

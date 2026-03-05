@@ -103,7 +103,7 @@ export async function sendDailyDigestEmail(params: {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Daily Digest — ${params.projectName}</title>
+  <title>Daily Digest: ${params.projectName}</title>
 </head>
 <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333; background: #f9f9f9;">
   <div style="background: white; border-radius: 8px; padding: 32px; border: 1px solid #e5e5e5;">
@@ -111,7 +111,7 @@ export async function sendDailyDigestEmail(params: {
       <h1 style="margin: 0; font-size: 20px; font-family: 'JetBrains Mono', monospace, sans-serif;">
         ▶ ONERA OPERATOR
       </h1>
-      <p style="margin: 4px 0 0; color: #666; font-size: 13px;">Daily Digest — ${params.date}</p>
+      <p style="margin: 4px 0 0; color: #666; font-size: 13px;">Daily Digest: ${params.date}</p>
     </div>
 
     <p style="margin: 0 0 24px;">Hi ${ownerName},</p>
@@ -152,9 +152,9 @@ export async function sendDailyDigestEmail(params: {
     const poller = await emailClient.beginSend({
       senderAddress,
       content: {
-        subject: `[${params.projectName}] Daily Operator Digest — ${params.date}`,
+        subject: `[${params.projectName}] Daily Operator Digest: ${params.date}`,
         html: htmlBody,
-        plainText: `Daily Digest for ${params.projectName} — ${params.date}\n\n${params.completedCount} tasks completed today.\n\nHighlights:\n${params.highlights.join("\n")}\n\nNext steps:\n${params.nextSteps.join("\n")}\n\nFull report:\n${params.reportContent.substring(0, 3000)}`,
+        plainText: `Daily Digest for ${params.projectName} | ${params.date}\n\n${params.completedCount} tasks completed today.\n\nHighlights:\n${params.highlights.join("\n")}\n\nNext steps:\n${params.nextSteps.join("\n")}\n\nFull report:\n${params.reportContent.substring(0, 3000)}`,
       },
       recipients: {
         to: [{ address: ownerEmail }],
