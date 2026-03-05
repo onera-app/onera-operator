@@ -232,9 +232,17 @@ I'm already planning your first batch of tasks: growth moves, outreach targets, 
 
 ${dashboardUrl}
 
-Talk soon,
-Onera Operator
-COO for ${params.projectName}`;
+Open your dashboard to watch progress, or subscribe to start your first operating cycle.
+
+${dashboardUrl}
+
+— Onera Operator (Shipping & Operating)
+
+  +-------+
+  | ^   ^ |  /🚀
+  |   o   | /
+  | \\___/ |
+  +-------+`;
 
   const productLine = params.product ? `Here's what I picked up about your product: ${params.product}` : "";
   const descLine = params.description ? params.description : "";
@@ -249,8 +257,14 @@ COO for ${params.projectName}`;
     I just finished going through <a href="${params.website}" style="color: #0033CC;">${params.projectName}</a> and I'm ready to get to work.<br><br>
     ${researchBlock ? `${researchBlock}<br><br>` : ""}Your company email is set up: <strong>${params.companyEmail}</strong>. All outreach and updates will come from this address.<br><br>
     I'm already planning your first batch of tasks: growth moves, outreach targets, competitive research. You can watch it happen live.<br><br>
-    <a href="${dashboardUrl}" style="color: #0033CC;">Open Dashboard</a><br><br>
-    <span style="color: #999; font-size: 12px;">Onera Operator, COO for ${params.projectName}</span>
+    <a href="${dashboardUrl}" style="color: #0033CC;"><strong>Open your dashboard</strong></a> to watch progress, or subscribe to start your first operating cycle.<br><br>
+    <span style="color: #999;">&mdash; Onera Operator (Shipping &amp; Operating)</span><br><br>
+    <pre style="font-family: 'Courier New', monospace; font-size: 13px; line-height: 1.3; color: #1a1a1a; margin: 0;">  +-------+
+  | ^   ^ |  /&#x1F680;
+  |   o   | /
+  | \___/ |
+  +-------+</pre><br>
+    <a href="${dashboardUrl}" style="color: #0033CC; font-size: 13px;">View Dashboard &rarr;</a>
   </div>
 </body>
 </html>`;

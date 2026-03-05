@@ -113,8 +113,14 @@ export async function sendDailyDigestEmail(params: {
     ${shippedList}<br><br>
     <strong>Up next</strong><br>
     ${nextList}<br><br>
-    <a href="${dashboardUrl}" style="color: #0033CC;">Open Dashboard</a> for the full report.<br><br>
-    <span style="color: #999; font-size: 12px;">Onera Operator, COO for ${params.projectName}</span>
+    <a href="${dashboardUrl}" style="color: #0033CC;"><strong>Open your dashboard</strong></a> for the full report.<br><br>
+    <span style="color: #999;">&mdash; Onera Operator (Shipping &amp; Operating)</span><br><br>
+    <pre style="font-family: 'Courier New', monospace; font-size: 13px; line-height: 1.3; color: #1a1a1a; margin: 0;">  +-------+
+  | ^   ^ |  /&#x1F680;
+  |   o   | /
+  | \___/ |
+  +-------+</pre><br>
+    <a href="${dashboardUrl}" style="color: #0033CC; font-size: 13px;">View Dashboard &rarr;</a>
   </div>
 </body>
 </html>`;
@@ -126,7 +132,7 @@ export async function sendDailyDigestEmail(params: {
       content: {
         subject: `[${params.projectName}] Here's what happened today`,
         html: htmlBody,
-        plainText: `Hey ${ownerName},\n\nHere's what happened with ${params.projectName} today. ${params.completedCount} tasks done, ${params.pendingCount} queued up.\n\nShipped:\n${highlightItems.map((h) => `  * ${h}`).join("\n")}\n\nUp next:\n${nextStepItems.map((s, i) => `  ${i + 1}. ${s}`).join("\n")}\n\nFull report:\n${params.reportContent.substring(0, 2000)}\n\nOpen your dashboard: ${dashboardUrl}\n\nOnera Operator / COO for ${params.projectName}`,
+        plainText: `Hey ${ownerName},\n\nHere's what happened with ${params.projectName} today. ${params.completedCount} tasks done, ${params.pendingCount} queued up.\n\nShipped:\n${highlightItems.map((h) => `  * ${h}`).join("\n")}\n\nUp next:\n${nextStepItems.map((s, i) => `  ${i + 1}. ${s}`).join("\n")}\n\nOpen your dashboard for the full report: ${dashboardUrl}\n\n— Onera Operator (Shipping & Operating)\n\n  +-------+\n  | ^   ^ |  /🚀\n  |   o   | /\n  | \\___/ |\n  +-------+`,
       },
       recipients: {
         to: [{ address: ownerEmail }],

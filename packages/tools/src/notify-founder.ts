@@ -20,9 +20,14 @@ function buildNotificationHtml(params: {
   <div style="max-width: 560px; padding: 20px;">
     ${body}
     <br><br>
-    <a href="${params.dashboardUrl}" style="color: #0033CC;">Open Dashboard</a>
-    <br><br>
-    <span style="color: #999; font-size: 12px;">Onera Operator, COO for ${params.companyName}</span>
+    <a href="${params.dashboardUrl}" style="color: #0033CC;"><strong>Open your dashboard</strong></a> to see the details.<br><br>
+    <span style="color: #999;">&mdash; Onera Operator (Shipping &amp; Operating)</span><br><br>
+    <pre style="font-family: 'Courier New', monospace; font-size: 13px; line-height: 1.3; color: #1a1a1a; margin: 0;">  +-------+
+  | ^   ^ |  /&#x1F680;
+  |   o   | /
+  | \___/ |
+  +-------+</pre><br>
+    <a href="${params.dashboardUrl}" style="color: #0033CC; font-size: 13px;">View Dashboard &rarr;</a>
   </div>
 </body>
 </html>`;
@@ -117,7 +122,7 @@ export const notifyFounder = tool({
         content: {
           subject: `[${companyName}] ${subject}`,
           html: htmlBody,
-          plainText: `${subject}\n\n${message}\n\nView your dashboard: ${dashboardUrl}/dashboard\n\nOnera Operator\nCOO for ${companyName}`,
+          plainText: `${subject}\n\n${message}\n\nOpen your dashboard: ${dashboardUrl}/dashboard\n\n— Onera Operator (Shipping & Operating)\n\n  +-------+\n  | ^   ^ |  /🚀\n  |   o   | /\n  | \\___/ |\n  +-------+`,
         },
         recipients: {
           to: [{ address: founderEmail }],
