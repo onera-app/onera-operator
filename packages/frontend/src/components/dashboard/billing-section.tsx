@@ -1,8 +1,6 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { api, type BillingSummary, type CreditPack } from "@/lib/api-client";
 
@@ -20,13 +18,13 @@ export function BillingSection({ userId }: BillingSectionProps) {
       const data = await api.billing.summary(userId);
       setBilling(data);
     } catch {
-      // Fall back gracefully — user may not have billing data yet
+      // User may not have billing data yet
     }
   }, [userId]);
 
   useEffect(() => {
     fetchBilling();
-    const interval = setInterval(fetchBilling, 15000); // refresh every 15s
+    const interval = setInterval(fetchBilling, 15000);
     return () => clearInterval(interval);
   }, [fetchBilling]);
 
@@ -56,10 +54,6 @@ export function BillingSection({ userId }: BillingSectionProps) {
     );
   }
 
-  const trialDaysLeft = billing.trialEndsAt
-    ? Math.max(0, Math.ceil((new Date(billing.trialEndsAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
-    : 0;
-
   return (
     <div className="space-y-3">
       {/* Credit balance */}
@@ -70,9 +64,9 @@ export function BillingSection({ userId }: BillingSectionProps) {
           </span>
           <span
             className={`text-lg font-bold ${
-              billing.credits <= 10
+              billing.credits <= 5
                 ? "text-destructive"
-                : billing.credits <= 50
+                : billing.credits <= 20
                   ? "text-yellow-500"
                   : "text-primary"
             }`}
@@ -81,43 +75,21 @@ export function BillingSection({ userId }: BillingSectionProps) {
           </span>
         </div>
 
-        {/* Trial status badge */}
-        {billing.trialActive && (
-          <div className="flex items-center justify-between mt-2 pt-2 border-t border-dashed border-border">
-            <span className="text-[9px] uppercase tracking-wider text-muted-foreground">Trial</span>
-            <Badge variant="default" className="text-[9px]">
-              {trialDaysLeft}d left
-            </Badge>
-          </div>
-        )}
-
-        {billing.trialExpired && !billing.hasCard && (
-          <p className="text-[9px] text-destructive mt-2 pt-2 border-t border-dashed border-border">
-            Trial expired. Add a card to continue.
-          </p>
-        )}
-
-        {!billing.trialActivated && !billing.hasCard && (
-          <p className="text-[9px] text-muted-foreground mt-2 pt-2 border-t border-dashed border-border">
-            Add a card to get 50 free credits + 5 day trial
-          </p>
-        )}
-
         {/* Low credits warning */}
         {billing.credits <= 10 && billing.credits > 0 && (
-          <p className="text-[9px] text-yellow-500 mt-1">
-            Low credits — tasks will fail when depleted
+          <p className="text-[9px] text-yellow-500 mt-2 pt-2 border-t border-dashed border-border">
+            Low credits — top up to keep agents running
           </p>
         )}
         {billing.credits === 0 && (
-          <p className="text-[9px] text-destructive mt-1">
+          <p className="text-[9px] text-destructive mt-2 pt-2 border-t border-dashed border-border">
             No credits — tasks are paused
           </p>
         )}
       </div>
 
       {/* Credit packs */}
-      <CollapsibleSection title="Top Up" defaultOpen={billing.credits <= 50}>
+      <CollapsibleSection title="Top Up" defaultOpen={billing.credits <= 20}>
         <div className="space-y-1.5">
           {billing.packs.map((pack: CreditPack) => (
             <button

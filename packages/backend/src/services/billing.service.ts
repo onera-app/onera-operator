@@ -1,54 +1,62 @@
 import { prisma } from "@onera/database";
 
-// ─── Credit Pack Definitions ────────────────────────────────────
+// ─── Credit Pack Definitions (Final Pricing) ────────────────────
 export const CREDIT_PACKS = [
-  { slug: "growth-500", name: "Growth", credits: 500, price: 2900 }, // $29
-  { slug: "scale-2000", name: "Scale", credits: 2000, price: 7900 }, // $79
-  { slug: "power-5000", name: "Power", credits: 5000, price: 14900 }, // $149
-  { slug: "mega-15000", name: "Mega", credits: 15000, price: 29900 }, // $299
+  { slug: "growth-500", name: "Growth", credits: 500, price: 2900 },      // $29
+  { slug: "scale-2000", name: "Scale", credits: 2000, price: 79_00 },     // $79
+  { slug: "power-5000", name: "Power", credits: 5000, price: 149_00 },    // $149
+  { slug: "mega-15000", name: "Mega", credits: 15000, price: 299_00 },    // $299
 ] as const;
 
-export const TRIAL_CREDITS = 50;
-export const TRIAL_DAYS = 5;
+export const SIGNUP_CREDITS = 50;
 export const AUTO_CHARGE_PACK = CREDIT_PACKS[0]; // Growth 500 @ $29
 export const MAX_TWEETS_PER_DAY_PER_PROJECT = 3;
 
-// Credit costs per action type
+// Credit costs per action type (1 credit = 1 action unit)
 export const ACTION_CREDITS: Record<string, number> = {
-  twitter: 3,
-  outreach: 5,
-  research: 5,
-  engineer: 5,
-  planner: 1,
+  twitter: 3,    // Post tweet
+  outreach: 5,   // Send outreach email
+  research: 5,   // Research task
+  engineer: 5,   // Engineering task
+  planner: 1,    // Plan tasks (auto)
+  report: 0,     // Daily report — free
+  chat: 0,       // Chat message — free
 };
 
-// ─── Trial Activation ───────────────────────────────────────────
-export async function activateTrial(userId: string, dodoCustomerId: string) {
-  const trialEndsAt = new Date();
-  trialEndsAt.setDate(trialEndsAt.getDate() + TRIAL_DAYS);
-
-  const user = await prisma.user.update({
+// ─── Record Signup Bonus ────────────────────────────────────────
+// Called when ensureUser creates a new user (credits set via Prisma default).
+// This logs the initial 50 credits as a transaction for audit trail.
+export async function recordSignupBonus(userId: string) {
+  const user = await prisma.user.findUnique({
     where: { id: userId },
-    data: {
-      credits: { increment: TRIAL_CREDITS },
-      dodoCustomerId,
-      trialActivated: true,
-      trialEndsAt,
-    },
+    select: { credits: true },
   });
 
-  // Record the transaction
+  if (!user) return;
+
+  // Check if bonus already recorded
+  const existing = await prisma.creditTransaction.findFirst({
+    where: { userId, type: "SIGNUP_BONUS" },
+  });
+  if (existing) return;
+
   await prisma.creditTransaction.create({
     data: {
       userId,
-      type: "TRIAL_BONUS",
-      amount: TRIAL_CREDITS,
+      type: "SIGNUP_BONUS",
+      amount: SIGNUP_CREDITS,
       balance: user.credits,
-      description: `Trial activated: ${TRIAL_CREDITS} free credits, expires ${trialEndsAt.toISOString().split("T")[0]}`,
+      description: `Welcome bonus: ${SIGNUP_CREDITS} free credits on signup`,
     },
   });
+}
 
-  return user;
+// ─── Link DodoPayments Customer ─────────────────────────────────
+export async function linkDodoCustomer(userId: string, dodoCustomerId: string) {
+  return prisma.user.update({
+    where: { id: userId },
+    data: { dodoCustomerId },
+  });
 }
 
 // ─── Add Credits (after purchase) ───────────────────────────────
@@ -89,6 +97,15 @@ export async function deductCreditsForTask(
   taskId: string,
   description: string
 ): Promise<{ success: boolean; remainingCredits: number }> {
+  // Free actions (0 credits) always succeed
+  if (amount <= 0) {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { credits: true },
+    });
+    return { success: true, remainingCredits: user?.credits ?? 0 };
+  }
+
   // Atomic check-and-deduct
   const result = await prisma.user.updateMany({
     where: { id: userId, credits: { gte: amount } },
@@ -96,7 +113,7 @@ export async function deductCreditsForTask(
   });
 
   if (result.count === 0) {
-    // Insufficient credits — attempt auto-charge
+    // Insufficient credits
     const user = await prisma.user.findUnique({
       where: { id: userId },
       select: { credits: true, autoChargeEnabled: true, dodoCustomerId: true },
@@ -184,8 +201,7 @@ export async function attemptAutoCharge(
       return { success: false, creditsAdded: 0 };
     }
 
-    // Credits will be added when the webhook fires (onPaymentSucceeded).
-    // For now, optimistically add credits so the task can proceed.
+    // Optimistically add credits so the task can proceed
     await addCredits(userId, AUTO_CHARGE_PACK.credits, {
       type: "AUTO_CHARGE",
       description: `Auto-charged: ${AUTO_CHARGE_PACK.credits} credits ($${AUTO_CHARGE_PACK.price / 100}) — pending payment confirmation`,
@@ -202,14 +218,12 @@ export async function attemptAutoCharge(
   }
 }
 
-// ─── Check Trial Status ─────────────────────────────────────────
-export async function getTrialStatus(userId: string) {
+// ─── Get User Billing Status ────────────────────────────────────
+export async function getBillingStatus(userId: string) {
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: {
       credits: true,
-      trialActivated: true,
-      trialEndsAt: true,
       autoChargeEnabled: true,
       dodoCustomerId: true,
     },
@@ -217,16 +231,8 @@ export async function getTrialStatus(userId: string) {
 
   if (!user) return null;
 
-  const now = new Date();
-  const trialExpired = user.trialEndsAt ? now > user.trialEndsAt : false;
-  const trialActive = user.trialActivated && !trialExpired;
-
   return {
     credits: user.credits,
-    trialActivated: user.trialActivated,
-    trialActive,
-    trialExpired,
-    trialEndsAt: user.trialEndsAt,
     hasCard: !!user.dodoCustomerId,
     autoChargeEnabled: user.autoChargeEnabled,
   };
@@ -271,12 +277,16 @@ export async function getUserByDodoCustomerId(dodoCustomerId: string) {
 // ─── Get user billing summary ───────────────────────────────────
 export async function getBillingSummary(userId: string) {
   const [status, history] = await Promise.all([
-    getTrialStatus(userId),
+    getBillingStatus(userId),
     getCreditHistory(userId, 20),
   ]);
 
+  if (!status) return null;
+
   return {
-    ...status,
+    credits: status.credits,
+    hasCard: status.hasCard,
+    autoChargeEnabled: status.autoChargeEnabled,
     recentTransactions: history,
     packs: CREDIT_PACKS.map((p) => ({
       slug: p.slug,

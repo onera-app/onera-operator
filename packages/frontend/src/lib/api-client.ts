@@ -329,10 +329,6 @@ export interface CreditTransaction {
 
 export interface BillingSummary {
   credits: number;
-  trialActivated: boolean;
-  trialActive: boolean;
-  trialExpired: boolean;
-  trialEndsAt: string | null;
   hasCard: boolean;
   autoChargeEnabled: boolean;
   recentTransactions: CreditTransaction[];
