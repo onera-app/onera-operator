@@ -1,6 +1,5 @@
 import { prisma } from "@onera/database";
 import type { ProjectContext } from "@onera/shared";
-import { recordSignupBonus } from "./billing.service.js";
 
 export async function listProjects(userId?: string) {
   return prisma.project.findMany({
@@ -54,30 +53,20 @@ export async function ensureUser(data: {
   name?: string;
   image?: string;
 }) {
-  // Check if user already exists
-  const existing = await prisma.user.findUnique({ where: { id: data.id } });
-
-  const user = await prisma.user.upsert({
+  return prisma.user.upsert({
     where: { id: data.id },
     create: {
       id: data.id,
       email: data.email,
       name: data.name,
       image: data.image,
-      credits: 50,
+      credits: 0, // 0 until card added
     },
     update: {
       name: data.name,
       image: data.image,
     },
   });
-
-  // Record signup bonus for new users
-  if (!existing) {
-    await recordSignupBonus(user.id).catch(() => {});
-  }
-
-  return user;
 }
 
 export async function getUserCredits(userId: string): Promise<number> {

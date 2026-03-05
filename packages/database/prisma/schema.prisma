@@ -14,7 +14,7 @@ model User {
   name             String?
   email            String?   @unique
   image            String?
-  credits          Int       @default(50) // 50 free credits on signup
+  credits          Int       @default(0) // 0 until card added, then 50 free
   dodoCustomerId   String?   @unique @map("dodo_customer_id")
   trialActivated   Boolean   @default(false) @map("trial_activated")
   trialEndsAt      DateTime? @map("trial_ends_at")
@@ -47,7 +47,7 @@ model CreditTransaction {
 }
 
 enum CreditTransactionType {
-  SIGNUP_BONUS   // 100 free credits on signup
+  CARD_BONUS     // 50 free credits when user adds card
   PURCHASE       // Bought a credit pack
   AUTO_CHARGE    // Auto-charged when credits ran out
   TASK_DEDUCTION // Credits deducted for a task

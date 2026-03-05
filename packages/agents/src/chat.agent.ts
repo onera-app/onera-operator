@@ -1,5 +1,5 @@
 import { streamText, type Message } from "ai";
-import { getModel } from "@onera/ai";
+import { getModelForAgent } from "@onera/ai";
 import {
   generateTweet,
   scheduleTweet,
@@ -26,7 +26,7 @@ export function streamChatAgent(
   projectContext: string,
   context?: { projectId?: string; userId?: string; apiBaseUrl?: string }
 ) {
-  const model = getModel();
+  const model = getModelForAgent("chat");
   const taskTools = createTaskManagerTools({
     projectId: context?.projectId,
     userId: context?.userId,

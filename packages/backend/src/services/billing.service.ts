@@ -8,7 +8,7 @@ export const CREDIT_PACKS = [
   { slug: "mega-15000", name: "Mega", credits: 15000, price: 299_00 },    // $299
 ] as const;
 
-export const SIGNUP_CREDITS = 50;
+export const CARD_BONUS_CREDITS = 50;
 export const AUTO_CHARGE_PACK = CREDIT_PACKS[0]; // Growth 500 @ $29
 export const MAX_TWEETS_PER_DAY_PER_PROJECT = 3;
 
@@ -23,32 +23,40 @@ export const ACTION_CREDITS: Record<string, number> = {
   chat: 0,       // Chat message — free
 };
 
-// ─── Record Signup Bonus ────────────────────────────────────────
-// Called when ensureUser creates a new user (credits set via Prisma default).
-// This logs the initial 50 credits as a transaction for audit trail.
-export async function recordSignupBonus(userId: string) {
+// ─── Activate Card (give 50 free credits on first card add) ─────
+// Called when DodoPayments webhook confirms card/payment for the first time.
+export async function activateCard(userId: string, dodoCustomerId: string) {
+  // Check if already activated
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { credits: true },
+    select: { dodoCustomerId: true },
   });
 
-  if (!user) return;
+  const isFirstCard = !user?.dodoCustomerId;
 
-  // Check if bonus already recorded
-  const existing = await prisma.creditTransaction.findFirst({
-    where: { userId, type: "SIGNUP_BONUS" },
-  });
-  if (existing) return;
-
-  await prisma.creditTransaction.create({
+  // Link customer and mark card added
+  const updated = await prisma.user.update({
+    where: { id: userId },
     data: {
-      userId,
-      type: "SIGNUP_BONUS",
-      amount: SIGNUP_CREDITS,
-      balance: user.credits,
-      description: `Welcome bonus: ${SIGNUP_CREDITS} free credits on signup`,
+      dodoCustomerId,
+      ...(isFirstCard ? { credits: { increment: CARD_BONUS_CREDITS } } : {}),
     },
   });
+
+  // Record the bonus transaction (only on first card)
+  if (isFirstCard) {
+    await prisma.creditTransaction.create({
+      data: {
+        userId,
+        type: "CARD_BONUS",
+        amount: CARD_BONUS_CREDITS,
+        balance: updated.credits,
+        description: `Card added: ${CARD_BONUS_CREDITS} free credits to get started`,
+      },
+    });
+  }
+
+  return updated;
 }
 
 // ─── Link DodoPayments Customer ─────────────────────────────────
@@ -162,7 +170,6 @@ export async function attemptAutoCharge(
     return { success: false, creditsAdded: 0 };
   }
 
-  // Create a charge via DodoPayments API
   const env = process.env.DODO_PAYMENTS_ENVIRONMENT || "test_mode";
   const baseUrl =
     env === "live_mode"

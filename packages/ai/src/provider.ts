@@ -95,10 +95,65 @@ function createModelForProvider(config: AIConfig): LanguageModel {
   }
 }
 
+// ─── Per-Agent Model Routing ────────────────────────────────────
+// Users never see which model runs. We pick the optimal model per agent
+// to maximize margin while maintaining quality.
+//
+// Routing table (internal only):
+//   planner  → Kimi K2.5     (structured output, cheap)
+//   twitter  → Kimi K2.5     (short-form, doesn't need frontier)
+//   outreach → default model  (quality matters for emails)
+//   research → default model  (good reasoning needed)
+//   engineer → default model  (best for code gen)
+//   report   → Kimi K2.5     (structured summary, cheap)
+//   chat     → default model  (user-facing, quality matters)
+//   public   → Kimi K2.5     (high volume, low-value)
+//
+// The "default model" is whatever AI_PROVIDER/AI_MODEL is configured to.
+// Cheap agents use the env-configured Azure Kimi K2.5 which is already the default.
+// When you add Sonnet/GPT keys, override specific agents here.
+
+const AGENT_MODEL_OVERRIDES: Record<string, Partial<AIConfig>> = {
+  // Currently all agents use the default model (Kimi K2.5 via Azure).
+  // When you add OpenAI/Anthropic keys, uncomment overrides:
+  //
+  // outreach: { provider: "anthropic", model: "claude-sonnet-4-20250514", apiKey: process.env.ANTHROPIC_API_KEY || "" },
+  // research: { provider: "openai", model: "gpt-4o", apiKey: process.env.OPENAI_API_KEY || "" },
+  // engineer: { provider: "openai", model: "gpt-4o", apiKey: process.env.OPENAI_API_KEY || "" },
+  // chat:     { provider: "anthropic", model: "claude-sonnet-4-20250514", apiKey: process.env.ANTHROPIC_API_KEY || "" },
+};
+
+// Cache per agent to avoid re-creating models
+const agentModelCache: Record<string, LanguageModel> = {};
+
+/**
+ * Get the optimal model for a specific agent.
+ * Falls back to the default model if no override is configured.
+ */
+export function getModelForAgent(agentName: string): LanguageModel {
+  if (agentModelCache[agentName]) {
+    return agentModelCache[agentName];
+  }
+
+  const override = AGENT_MODEL_OVERRIDES[agentName];
+  if (override && override.apiKey) {
+    const model = getModel(override);
+    agentModelCache[agentName] = model;
+    return model;
+  }
+
+  // No override — use default model
+  return getModel();
+}
+
 /**
  * Clears the cached model. Useful when config changes at runtime.
  */
 export function resetModel(): void {
   cachedModel = null;
   cachedConfig = null;
+  // Clear agent cache too
+  for (const key of Object.keys(agentModelCache)) {
+    delete agentModelCache[key];
+  }
 }

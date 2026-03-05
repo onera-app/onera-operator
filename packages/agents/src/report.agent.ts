@@ -1,5 +1,5 @@
 import { generateObject } from "ai";
-import { getModel } from "@onera/ai";
+import { getModelForAgent } from "@onera/ai";
 import { dailyReportOutputSchema } from "@onera/shared";
 
 export interface ReportAgentInput {
@@ -18,7 +18,7 @@ export interface ReportAgentInput {
  * upcoming tasks, and key metrics.
  */
 export async function runReportAgent(input: ReportAgentInput) {
-  const model = getModel();
+  const model = getModelForAgent("report");
 
   const { object } = await generateObject({
     model,

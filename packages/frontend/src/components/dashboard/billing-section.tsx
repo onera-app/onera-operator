@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { Button } from "@/components/ui/button";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { api, type BillingSummary, type CreditPack } from "@/lib/api-client";
 
@@ -11,6 +12,7 @@ interface BillingSectionProps {
 export function BillingSection({ userId }: BillingSectionProps) {
   const [billing, setBilling] = useState<BillingSummary | null>(null);
   const [purchasing, setPurchasing] = useState<string | null>(null);
+  const [addingCard, setAddingCard] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const fetchBilling = useCallback(async () => {
@@ -27,6 +29,19 @@ export function BillingSection({ userId }: BillingSectionProps) {
     const interval = setInterval(fetchBilling, 15000);
     return () => clearInterval(interval);
   }, [fetchBilling]);
+
+  async function handleAddCard() {
+    setAddingCard(true);
+    setError(null);
+    try {
+      const { checkoutUrl } = await api.billing.addCard(userId);
+      window.open(checkoutUrl, "_blank");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to start card setup");
+    } finally {
+      setAddingCard(false);
+    }
+  }
 
   async function handlePurchase(packSlug: string) {
     setPurchasing(packSlug);
@@ -54,6 +69,67 @@ export function BillingSection({ userId }: BillingSectionProps) {
     );
   }
 
+  // ─── No card yet: show gate ───────────────────────────────────
+  if (!billing.hasCard) {
+    return (
+      <div className="space-y-3">
+        <div className="border border-dashed border-border p-4">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+              Credits
+            </span>
+            <span className="text-lg font-bold text-muted-foreground">0</span>
+          </div>
+          <div className="border-t border-dashed border-border pt-3">
+            <p className="text-[11px] font-semibold text-foreground mb-1">
+              Add a card to get started
+            </p>
+            <p className="text-[9px] text-muted-foreground mb-3 leading-relaxed">
+              Get 50 free credits instantly. No charge until you buy a pack.
+            </p>
+            <Button
+              size="sm"
+              className="w-full text-[10px] uppercase tracking-wider"
+              onClick={handleAddCard}
+              disabled={addingCard}
+            >
+              {addingCard ? "Opening..." : "Add Card — Get 50 Free Credits"}
+            </Button>
+            {error && (
+              <p className="text-[9px] text-destructive mt-2">{error}</p>
+            )}
+          </div>
+        </div>
+
+        {/* Show what 50 credits gets you */}
+        <div className="border border-dashed border-border p-3">
+          <p className="text-[9px] uppercase tracking-wider text-muted-foreground mb-2">
+            50 credits gets you
+          </p>
+          <div className="space-y-1 text-[9px] text-muted-foreground">
+            <div className="flex justify-between">
+              <span>~16 tweets posted</span>
+              <span className="text-foreground">3 cr each</span>
+            </div>
+            <div className="flex justify-between">
+              <span>~10 outreach emails</span>
+              <span className="text-foreground">5 cr each</span>
+            </div>
+            <div className="flex justify-between">
+              <span>~10 research tasks</span>
+              <span className="text-foreground">5 cr each</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Reports & chat</span>
+              <span className="text-green-500">free</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ─── Has card: show balance + top up ──────────────────────────
   return (
     <div className="space-y-3">
       {/* Credit balance */}
@@ -75,7 +151,6 @@ export function BillingSection({ userId }: BillingSectionProps) {
           </span>
         </div>
 
-        {/* Low credits warning */}
         {billing.credits <= 10 && billing.credits > 0 && (
           <p className="text-[9px] text-yellow-500 mt-2 pt-2 border-t border-dashed border-border">
             Low credits — top up to keep agents running
@@ -153,12 +228,10 @@ export function BillingSection({ userId }: BillingSectionProps) {
       )}
 
       {/* Auto-charge indicator */}
-      {billing.hasCard && (
+      {billing.autoChargeEnabled && (
         <div className="flex items-center justify-between text-[9px] text-muted-foreground">
           <span>Auto-charge</span>
-          <span className={billing.autoChargeEnabled ? "text-green-500" : "text-muted-foreground"}>
-            {billing.autoChargeEnabled ? "ON — $29/500cr when empty" : "OFF"}
-          </span>
+          <span className="text-green-500">ON — $29/500cr when empty</span>
         </div>
       )}
     </div>

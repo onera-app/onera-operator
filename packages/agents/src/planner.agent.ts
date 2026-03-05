@@ -1,5 +1,5 @@
 import { generateObject } from "ai";
-import { getModel } from "@onera/ai";
+import { getModelForAgent } from "@onera/ai";
 import { plannedTasksOutputSchema } from "@onera/shared";
 
 export interface PlannerInput {
@@ -16,7 +16,7 @@ export interface PlannerInput {
  * and current metrics. Uses structured output to ensure valid task objects.
  */
 export async function runPlannerAgent(input: PlannerInput) {
-  const model = getModel();
+  const model = getModelForAgent("planner");
 
   const { object } = await generateObject({
     model,

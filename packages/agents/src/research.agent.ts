@@ -1,5 +1,5 @@
 import { generateText } from "ai";
-import { getModel } from "@onera/ai";
+import { getModelForAgent } from "@onera/ai";
 import { competitorResearch, webSearch, webScraper, summarizeContent } from "@onera/tools";
 
 export interface ResearchAgentInput {
@@ -14,7 +14,7 @@ export interface ResearchAgentInput {
  * Uses the competitorResearch, webSearch, and summarizeContent tools.
  */
 export async function runResearchAgent(input: ResearchAgentInput) {
-  const model = getModel();
+  const model = getModelForAgent("research");
 
   const result = await generateText({
     model,

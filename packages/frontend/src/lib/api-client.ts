@@ -113,6 +113,11 @@ export const api = {
       fetchApi<{ transactions: CreditTransaction[] }>(
         `/api/billing/${encodeURIComponent(userId)}/history${limit ? `?limit=${limit}` : ""}`
       ),
+    addCard: (userId: string) =>
+      fetchApi<{ checkoutUrl: string }>("/api/billing/add-card", {
+        method: "POST",
+        body: JSON.stringify({ userId }),
+      }),
     purchase: (userId: string, packSlug: string) =>
       fetchApi<{ checkoutUrl: string }>("/api/billing/purchase", {
         method: "POST",

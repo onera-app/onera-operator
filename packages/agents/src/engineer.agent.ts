@@ -1,5 +1,5 @@
 import { generateText } from "ai";
-import { getModel } from "@onera/ai";
+import { getModelForAgent } from "@onera/ai";
 import { executeCode, webSearch, webScraper, summarizeContent } from "@onera/tools";
 
 export interface EngineerAgentInput {
@@ -23,7 +23,7 @@ export interface EngineerAgentInput {
  * Requires E2B_API_KEY for sandboxed execution.
  */
 export async function runEngineerAgent(input: EngineerAgentInput) {
-  const model = getModel();
+  const model = getModelForAgent("engineer");
 
   const result = await generateText({
     model,

@@ -1,5 +1,5 @@
 import { generateText } from "ai";
-import { getModel } from "@onera/ai";
+import { getModelForAgent } from "@onera/ai";
 import { generateEmail, sendEmail, findLeads } from "@onera/tools";
 
 export interface OutreachAgentInput {
@@ -14,7 +14,7 @@ export interface OutreachAgentInput {
  * Uses the generateEmail, sendEmail, and findLeads tools.
  */
 export async function runOutreachAgent(input: OutreachAgentInput) {
-  const model = getModel();
+  const model = getModelForAgent("outreach");
 
   const result = await generateText({
     model,
