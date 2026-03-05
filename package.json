@@ -15,7 +15,7 @@
     "clean": "pnpm -r run clean && rm -rf node_modules"
   },
   "engines": {
-    "node": ">=20.0.0",
+    "node": ">=20.9.0",
     "pnpm": ">=9.0.0"
   },
   "packageManager": "pnpm@9.15.0"
