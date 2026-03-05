@@ -188,37 +188,46 @@ export async function billingRoutes(app: FastifyInstance) {
           const data = payload.data as Record<string, unknown>;
           const metadata = (data.metadata || {}) as Record<string, string>;
           const paymentId = data.payment_id as string;
-          const customerId = data.customer_id as string;
+          const customerId = (data.customer as Record<string, unknown>)?.customer_id as string | undefined;
           const subscriptionId = data.subscription_id as string | undefined;
 
-          const userId = metadata.userId;
-          if (!userId) {
-            // Try to find user by subscription ID (for renewals without metadata)
-            if (subscriptionId) {
-              const user = await prisma.user.findUnique({
-                where: { dodoSubscriptionId: subscriptionId },
-                select: { id: true },
-              });
-              if (user) {
-                await handleSubscriptionRenewal(user.id, paymentId);
-                app.log.info({ userId: user.id }, "Subscription renewal credits added (via sub ID)");
-              }
+          // ── Idempotency: skip if this payment was already processed ──
+          if (paymentId) {
+            const existing = await prisma.creditTransaction.findFirst({
+              where: { dodoPaymentId: paymentId },
+            });
+            if (existing) {
+              app.log.info({ paymentId }, "Skipping duplicate payment webhook");
+              return;
             }
+          }
+
+          // Resolve userId from metadata or subscription ID
+          let userId = metadata.userId;
+          if (!userId && subscriptionId) {
+            const user = await prisma.user.findUnique({
+              where: { dodoSubscriptionId: subscriptionId },
+              select: { id: true },
+            });
+            if (user) userId = user.id;
+          }
+          if (!userId) {
+            app.log.warn({ paymentId }, "No userId found for payment");
             return;
           }
 
+          // Link DodoPayments customer ID if not already set
+          if (customerId) {
+            await prisma.user.updateMany({
+              where: { id: userId, dodoCustomerId: null },
+              data: { dodoCustomerId: customerId },
+            });
+          }
+
           if (metadata.type === "credit_pack") {
-            // One-time credit pack purchase
+            // One-time credit pack purchase (top-up)
             const packSlug = metadata.packSlug;
             const pack = CREDIT_PACKS.find((p) => p.slug === packSlug);
-
-            // Link customer if needed
-            if (customerId) {
-              await prisma.user.update({
-                where: { id: userId },
-                data: { dodoCustomerId: customerId },
-              }).catch(() => {});
-            }
 
             if (pack) {
               await addCredits(userId, pack.credits, {
@@ -230,13 +239,15 @@ export async function billingRoutes(app: FastifyInstance) {
               app.log.info({ userId, pack: pack.slug }, "Credit pack purchased");
             }
           } else if (subscriptionId) {
-            // Subscription payment (monthly renewal after trial ends)
-            // The first payment during trial is $0, subsequent ones are $29
+            // Subscription renewal payment (after trial ends, $29/mo)
+            // Trial payments are $0 — only grant credits for real charges
             const paymentAmount = data.total_amount as number | undefined;
 
             if (paymentAmount && paymentAmount > 0) {
               await handleSubscriptionRenewal(userId, paymentId);
-              app.log.info({ userId }, "Subscription renewal credits added");
+              app.log.info({ userId, paymentAmount }, "Subscription renewal credits added");
+            } else {
+              app.log.info({ userId, paymentAmount }, "Skipping $0 trial payment — credits given via subscription.active");
             }
           }
         },

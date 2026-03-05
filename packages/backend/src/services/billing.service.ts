@@ -215,7 +215,7 @@ export async function getBillingStatus(userId: string) {
 
   return {
     credits: user.credits,
-    hasSubscription: !!user.dodoSubscriptionId,
+    hasSubscription: !!user.dodoSubscriptionId || !!user.subscriptionStatus,
     subscriptionStatus: user.subscriptionStatus,
     isTrialing: user.subscriptionStatus === "trialing",
     trialEndsAt: user.trialEndsAt?.toISOString() ?? null,
