@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import ReactMarkdown from "react-markdown";
 import { api, DailyReport } from "@/lib/api-client";
 import { formatDate } from "@/lib/utils";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
@@ -205,10 +206,10 @@ function ReportEntry({ report }: { report: DailyReport }) {
           </div>
         )}
 
-        {/* General content */}
+        {/* General content (rendered as markdown) */}
         {report.content && (
-          <div className="text-xs leading-relaxed whitespace-pre-wrap mb-3">
-            {report.content}
+          <div className="mb-3 text-xs leading-relaxed [&_h1]:text-sm [&_h1]:font-bold [&_h1]:mt-3 [&_h1]:mb-1 [&_h2]:text-[10px] [&_h2]:font-bold [&_h2]:uppercase [&_h2]:tracking-wider [&_h2]:text-muted-foreground [&_h2]:mt-3 [&_h2]:mb-1.5 [&_h3]:text-xs [&_h3]:font-semibold [&_h3]:mt-2 [&_h3]:mb-1 [&_p]:my-1.5 [&_p]:text-foreground/80 [&_ul]:my-1 [&_ul]:pl-4 [&_ul]:list-disc [&_ol]:my-1 [&_ol]:pl-4 [&_ol]:list-decimal [&_li]:my-0.5 [&_li]:text-foreground/80 [&_strong]:font-semibold [&_strong]:text-foreground [&_hr]:my-3 [&_hr]:border-dashed [&_hr]:border-border [&_code]:bg-muted [&_code]:px-1 [&_code]:py-0.5 [&_code]:text-[11px] [&_code]:rounded">
+            <ReactMarkdown>{report.content}</ReactMarkdown>
           </div>
         )}
 
