@@ -43,7 +43,7 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-[calc(100vh-5.5rem)]">
+      <div className="flex items-center justify-center h-[calc(100vh-3rem)]">
         <span className="text-xs text-muted-foreground uppercase tracking-wider animate-pulse">
           Loading dashboard...
         </span>
@@ -53,7 +53,7 @@ export default function DashboardPage() {
 
   if (fetchError) {
     return (
-      <div className="flex flex-col items-center justify-center h-[calc(100vh-5.5rem)] gap-4">
+      <div className="flex flex-col items-center justify-center h-[calc(100vh-3rem)] gap-4">
         <div className="border border-destructive/50 bg-destructive/5 p-6 text-center max-w-sm">
           <p className="text-xs text-destructive font-semibold uppercase tracking-wider mb-2">
             Failed to load dashboard
@@ -75,7 +75,7 @@ export default function DashboardPage() {
 
   if (projects.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-[calc(100vh-5.5rem)] gap-6">
+      <div className="flex flex-col items-center justify-center h-[calc(100vh-3rem)] gap-6">
         <div className="border-[1.5px] border-dashed border-border p-10 text-center max-w-md relative bp-corners">
           <h2 className="text-2xl font-bold text-primary mb-2">
             Welcome to OneraOS
@@ -91,7 +91,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-5.5rem)]">
+    <div className="flex flex-col h-[calc(100vh-3rem)]">
       {/* Project selector — shown when user has multiple projects */}
       {projects.length > 1 && (
         <div className="border-b border-dashed border-border px-4 py-2 flex items-center gap-3 shrink-0">
