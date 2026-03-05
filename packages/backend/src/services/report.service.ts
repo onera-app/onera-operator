@@ -1,5 +1,5 @@
 import { prisma } from "@onera/database";
-import { Resend } from "resend";
+import { EmailClient } from "@azure/communication-email";
 
 export async function createDailyReport(data: {
   projectId: string;
@@ -49,7 +49,7 @@ export async function listReports(projectId: string, limit = 30) {
 }
 
 /**
- * Send a daily digest email to the project owner via Resend.
+ * Send a daily digest email to the project owner via Azure Email Communication Service.
  * This mirrors Polsia's "morning email" feature where the AI sends
  * the founder a summary of what was accomplished and what's planned.
  */
@@ -63,19 +63,21 @@ export async function sendDailyDigestEmail(params: {
   pendingCount: number;
   date: string;
 }): Promise<void> {
-  const apiKey = process.env.RESEND_API_KEY;
-  const fromEmail = process.env.RESEND_FROM_EMAIL || "Onera Operator <operator@onera.app>";
+  const connectionString = process.env.AZURE_EMAIL_CONNECTION_STRING;
 
-  if (!apiKey) {
-    console.log(`[sendDailyDigestEmail] RESEND_API_KEY not set — skipping email for ${params.projectName}`);
+  if (!connectionString) {
+    console.log(`[sendDailyDigestEmail] AZURE_EMAIL_CONNECTION_STRING not set — skipping email for ${params.projectName}`);
     return;
   }
 
-  // Get the project owner's email
+  // Get the project owner's email and the project's company email
   const project = await prisma.project.findUnique({
     where: { id: params.projectId },
     include: { user: { select: { email: true, name: true } } },
   });
+
+  // Use the company-specific sender if available, otherwise fall back to default
+  const senderAddress = project?.companyEmail || (process.env.AZURE_EMAIL_SENDER || "operator@onera.app");
 
   if (!project?.user?.email) {
     console.warn(`[sendDailyDigestEmail] No email found for project owner of ${params.projectName}`);
@@ -146,19 +148,25 @@ export async function sendDailyDigestEmail(params: {
 </html>`;
 
   try {
-    const resend = new Resend(apiKey);
-    const result = await resend.emails.send({
-      from: fromEmail,
-      to: ownerEmail,
-      subject: `[${params.projectName}] Daily Operator Digest — ${params.date}`,
-      html: htmlBody,
-      text: `Daily Digest for ${params.projectName} — ${params.date}\n\n${params.completedCount} tasks completed today.\n\nHighlights:\n${params.highlights.join("\n")}\n\nNext steps:\n${params.nextSteps.join("\n")}\n\nFull report:\n${params.reportContent.substring(0, 3000)}`,
+    const emailClient = new EmailClient(connectionString);
+    const poller = await emailClient.beginSend({
+      senderAddress,
+      content: {
+        subject: `[${params.projectName}] Daily Operator Digest — ${params.date}`,
+        html: htmlBody,
+        plainText: `Daily Digest for ${params.projectName} — ${params.date}\n\n${params.completedCount} tasks completed today.\n\nHighlights:\n${params.highlights.join("\n")}\n\nNext steps:\n${params.nextSteps.join("\n")}\n\nFull report:\n${params.reportContent.substring(0, 3000)}`,
+      },
+      recipients: {
+        to: [{ address: ownerEmail }],
+      },
     });
 
-    if (result.error) {
-      console.error("[sendDailyDigestEmail] Resend error:", result.error);
-    } else {
+    const result = await poller.pollUntilDone();
+
+    if (result.status === "Succeeded") {
       console.log(`[sendDailyDigestEmail] Digest sent to ${ownerEmail} for ${params.projectName}`);
+    } else {
+      console.error("[sendDailyDigestEmail] Azure ECS error:", result.error);
     }
   } catch (err) {
     console.error("[sendDailyDigestEmail] Failed to send digest:", err instanceof Error ? err.message : err);

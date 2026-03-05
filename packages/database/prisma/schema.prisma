@@ -70,8 +70,9 @@ model Project {
   targetUsers String?  @map("target_users")
   competitors String?
   goals       String?
-  website     String?
-  logoUrl     String?  @map("logo_url")
+  website      String?
+  companyEmail String?  @unique @map("company_email")
+  logoUrl      String?  @map("logo_url")
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 

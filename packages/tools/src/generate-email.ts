@@ -5,15 +5,23 @@ import { getModel } from "@onera/ai";
 
 export const generateEmail = tool({
   description:
-    "Generate a cold outreach email for the startup. Takes recipient info " +
-    "and startup context, produces a personalized email.",
+    "Generate a cold outreach email for the startup. Takes recipient info, " +
+    "startup context (including company name and URL), and produces a personalized, " +
+    "clearly structured email. The sender introduces themselves as the COO of the startup.",
   parameters: z.object({
     recipientName: z.string().describe("Name of the recipient"),
     recipientRole: z.string().describe("Role or title of the recipient"),
     recipientCompany: z.string().describe("Company of the recipient"),
+    recipientCompanyUrl: z
+      .string()
+      .optional()
+      .describe("Website URL of the recipient's company, if known"),
     startupContext: z
       .string()
-      .describe("Startup name, product description, and value proposition"),
+      .describe(
+        "Startup name, product description, value proposition, and website URL. " +
+        "MUST include the company name and URL."
+      ),
     purpose: z
       .enum(["partnership", "sales", "feedback", "introduction", "investment"])
       .describe("The purpose of the outreach"),
@@ -22,6 +30,7 @@ export const generateEmail = tool({
     recipientName,
     recipientRole,
     recipientCompany,
+    recipientCompanyUrl,
     startupContext,
     purpose,
   }) => {
@@ -29,15 +38,31 @@ export const generateEmail = tool({
       const model = getModel();
       const { text } = await generateText({
         model,
-        system:
-          "You are an expert at writing cold outreach emails for startups. " +
-          "Write concise, personalized emails that get responses. " +
-          "Keep subject lines under 50 characters. Keep the body under 150 words. " +
-          "Be genuine, not salesy. Include a clear, low-commitment CTA. " +
-          "Format: start with 'Subject: ...' on the first line, then a blank line, then the body.",
+        system: `You are the COO of a startup writing professional outreach emails.
+
+## RULES — follow these exactly:
+
+1. **Identify yourself clearly**: In the opening line, state your full name as "the COO of [Company Name]" and include the company URL in parentheses.
+2. **Mention the recipient's company by name**: Reference their company name (and URL if provided) so the email feels researched and personal, not templated.
+3. **State your company's value prop in one sentence**: Make it concrete — what you do, for whom, and why it matters.
+4. **Keep it short**: Subject line under 50 characters. Body under 150 words. No fluff, no filler.
+5. **Clear structure**:
+   - Line 1: Who you are (name, title, company + URL)
+   - Line 2-3: Why you're reaching out — reference something specific about their company
+   - Line 4-5: Your value prop — what your company does and how it's relevant to them
+   - Line 6: One clear, low-commitment CTA (e.g., "Would a 15-min call next week work?")
+   - Sign-off: Your name, title, company name, company URL
+6. **Tone**: Professional, direct, genuine. Not salesy or gimmicky. No emojis.
+7. **Format**: First line must be "Subject: ..." then a blank line, then the body.
+
+## NEVER do this:
+- Never send a vague email without mentioning your company name and URL
+- Never skip the sign-off with company details
+- Never write generic emails that could be from anyone`,
         prompt:
           `Startup context: ${startupContext}\n\n` +
-          `Recipient: ${recipientName}, ${recipientRole} at ${recipientCompany}\n` +
+          `Recipient: ${recipientName}, ${recipientRole} at ${recipientCompany}` +
+          `${recipientCompanyUrl ? ` (${recipientCompanyUrl})` : ""}\n` +
           `Purpose: ${purpose}\n\n` +
           `Write the outreach email:`,
       });

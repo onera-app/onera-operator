@@ -9,6 +9,7 @@ import {
 } from "../services/project.service.js";
 import { researchCompanyUrl } from "@onera/tools";
 import { getSchedulerQueue } from "../queue/scheduler.queue.js";
+import { provisionCompanyEmail, sendWelcomeEmail } from "../services/email.service.js";
 
 export async function projectRoutes(app: FastifyInstance) {
   // List all projects (optionally filtered by userId)
@@ -91,6 +92,10 @@ export async function projectRoutes(app: FastifyInstance) {
 
         if (toolResult && typeof toolResult === "object") {
           const research = toolResult as Record<string, unknown>;
+
+          // Provision a company-specific sender email (e.g. acmecorp@onera.app)
+          const companyEmail = await provisionCompanyEmail(name);
+
           await updateProject(project.id, {
             description:
               (research.description as string) || description || undefined,
@@ -103,7 +108,23 @@ export async function projectRoutes(app: FastifyInstance) {
             goals: Array.isArray(research.goals)
               ? JSON.stringify(research.goals)
               : goals || undefined,
+            ...(companyEmail && { companyEmail }),
           });
+
+          // Send welcome email from the company's own address (fire-and-forget)
+          sendWelcomeEmail({
+            projectId: project.id,
+            projectName: name,
+            companyEmail: companyEmail || "operator@onera.app",
+            website,
+            description: (research.description as string) || description,
+            product: (research.product as string) || product,
+          }).catch((err) =>
+            console.warn(
+              "[projects] Welcome email failed:",
+              err instanceof Error ? err.message : err
+            )
+          );
 
           // Trigger the agent loop for the researched project
           try {

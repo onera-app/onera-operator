@@ -35,6 +35,7 @@ export async function updateProject(
     competitors?: string;
     goals?: string;
     website?: string;
+    companyEmail?: string;
   }
 ) {
   return prisma.project.update({ where: { id }, data });
@@ -123,6 +124,7 @@ export async function buildProjectContext(
   if (project.product) parts.push(`Product: ${project.product}`);
   if (project.targetUsers) parts.push(`Target Users: ${project.targetUsers}`);
   if (project.website) parts.push(`Website: ${project.website}`);
+  if (project.companyEmail) parts.push(`Company Email: ${project.companyEmail}`);
 
   if (project.competitors) {
     try {

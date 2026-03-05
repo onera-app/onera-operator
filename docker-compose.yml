@@ -68,9 +68,13 @@ services:
       AGENT_LOOP_INTERVAL_CRON: ${AGENT_LOOP_INTERVAL_CRON:-0 */4 * * *}
       DAILY_REPORT_CRON: ${DAILY_REPORT_CRON:-0 18 * * *}
       EXA_API_KEY: ${EXA_API_KEY:-}
-      # Email (Resend)
-      RESEND_API_KEY: ${RESEND_API_KEY:-}
-      RESEND_FROM_EMAIL: ${RESEND_FROM_EMAIL:-}
+      # Email (Azure Email Communication Service)
+      AZURE_EMAIL_CONNECTION_STRING: ${AZURE_EMAIL_CONNECTION_STRING:-}
+      AZURE_EMAIL_SENDER: ${AZURE_EMAIL_SENDER:-operator@onera.app}
+      # Azure Service Principal (per-company sender emails)
+      AZURE_TENANT_ID: ${AZURE_TENANT_ID:-}
+      AZURE_CLIENT_ID: ${AZURE_CLIENT_ID:-}
+      AZURE_CLIENT_SECRET: ${AZURE_CLIENT_SECRET:-}
       # Deep web crawling (Crawl4AI)
       CRAWL4AI_API_URL: http://crawl4ai:11235
       # Sandboxed code execution (E2B)
