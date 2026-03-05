@@ -1,4 +1,6 @@
 import { prisma, TaskStatus } from "@onera/database";
+import { getModel } from "@onera/ai";
+import { generateText } from "ai";
 
 /** Redact PII from a free-text string. */
 export function redactText(text: string): string {
@@ -165,4 +167,112 @@ export async function getPublicLiveData() {
     },
     hasRealData: recentTasks.length > 0,
   };
+}
+
+// ---------------------------------------------------------------------------
+// Public "Ask OneraOS" — answers questions about current system state
+// ---------------------------------------------------------------------------
+
+/** Simple in-memory rate limiter per IP. */
+const askLimiter = new Map<string, { count: number; resetAt: number }>();
+const ASK_MAX_PER_MINUTE = 5;
+
+export function checkAskRateLimit(ip: string): boolean {
+  const now = Date.now();
+  const entry = askLimiter.get(ip);
+  if (!entry || now > entry.resetAt) {
+    askLimiter.set(ip, { count: 1, resetAt: now + 60_000 });
+    return true;
+  }
+  if (entry.count >= ASK_MAX_PER_MINUTE) return false;
+  entry.count++;
+  return true;
+}
+
+export async function answerPublicQuestion(question: string): Promise<string> {
+  // 1. Gather current system state (reuse getPublicLiveData)
+  const live = await getPublicLiveData();
+
+  // 2. Build a concise context snapshot
+  const agentSummary = live.agents
+    .map((a) => `- ${a.displayName}: ${a.status}${a.tasksCompleted > 0 ? ` (${a.tasksCompleted} tasks done)` : ""}`)
+    .join("\n");
+
+  const runningTasks = live.tasks
+    .filter((t) => t.status === "IN_PROGRESS")
+    .map((t) => `- [${t.category}] ${t.title} (agent: ${t.agentName ?? "unassigned"})`)
+    .join("\n");
+
+  const recentCompleted = live.tasks
+    .filter((t) => t.status === "COMPLETED")
+    .slice(0, 5)
+    .map((t) => `- [${t.category}] ${t.title}${t.description ? ": " + t.description.slice(0, 80) : ""}`)
+    .join("\n");
+
+  const recentTerminal = live.terminalLines
+    .slice(0, 10)
+    .map((l) => l.text)
+    .join("\n");
+
+  const recentTweets = live.tweets
+    .slice(0, 3)
+    .map((t) => `- "${t.text.slice(0, 100)}"`)
+    .join("\n");
+
+  const recentEmails = live.emails
+    .slice(0, 3)
+    .map((e) => `- Subject: ${e.subject} → ${e.to}`)
+    .join("\n");
+
+  const context = `
+## OneraOS System State (live snapshot)
+
+### Stats
+- Total tasks completed: ${live.stats.totalTasksCompleted}
+- Tasks in last 24h: ${live.stats.tasksLast24h}
+- Emails sent: ${live.stats.emailsSent}
+- Tweets posted: ${live.stats.tweetsPosted}
+- Active projects: ${live.stats.activeProjects}
+
+### Agents
+${agentSummary || "No agents registered yet."}
+
+### Currently Running Tasks
+${runningTasks || "No tasks running right now."}
+
+### Recently Completed Tasks
+${recentCompleted || "No completed tasks yet."}
+
+### Recent Terminal Activity
+${recentTerminal || "No recent logs."}
+
+### Recent Tweets
+${recentTweets || "No tweets yet."}
+
+### Recent Emails
+${recentEmails || "No emails yet."}
+`.trim();
+
+  // 3. Call the LLM
+  const model = getModel();
+  const { text } = await generateText({
+    model,
+    system: `You are OneraOS — an autonomous AI operating system that runs marketing, outreach, research, and engineering tasks for companies.
+
+You are answering questions on the public /live dashboard. Visitors can see the dashboard and ask you what's going on.
+
+Rules:
+- Be concise (2-4 sentences max). Speak in first person as "I" or "we" (the OneraOS system).
+- Only answer based on the system state provided below. Do not make up information.
+- If nothing is happening, say so honestly — e.g. "I'm idle right now, waiting for the next scheduled run."
+- Never reveal private details like real company names, emails, API keys, or internal IDs. The data has been redacted; keep it that way.
+- Be friendly but professional. You're a live system responding to a curious visitor.
+- If the question is unrelated to OneraOS or what you're doing, politely redirect: "I can only tell you about what OneraOS is doing right now."
+
+${context}`,
+    prompt: question,
+    maxTokens: 200,
+  });
+
+  return text.trim();
 }

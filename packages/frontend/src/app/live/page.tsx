@@ -104,9 +104,9 @@ export default function LivePage() {
           />
         </div>
 
-        {/* Col 4 — CTA sidebar */}
+        {/* Col 4 — Ask OneraOS + CTA */}
         <div className="col-span-3 overflow-y-auto scrollbar-thin p-5 flex flex-col">
-          <CtaColumn agents={data?.agents ?? []} />
+          <AskColumn agents={data?.agents ?? []} />
         </div>
       </div>
     </div>
@@ -464,42 +464,171 @@ function SocialColumn({
 }
 
 // ---------------------------------------------------------------------------
-// Col 4 — CTA + Live Chat style
+// Col 4 — Ask OneraOS + CTA
 // ---------------------------------------------------------------------------
-function CtaColumn({ agents }: { agents: PublicAgentStatus[] }) {
+interface ChatMessage {
+  role: "user" | "assistant";
+  text: string;
+}
+
+function AskColumn({ agents }: { agents: PublicAgentStatus[] }) {
   const totalTasks = agents.reduce((sum, a) => sum + a.tasksCompleted, 0);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const chatEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  const handleAsk = useCallback(async () => {
+    const q = input.trim();
+    if (!q || loading) return;
+
+    setInput("");
+    setError(null);
+    setMessages((prev) => [...prev, { role: "user", text: q }]);
+    setLoading(true);
+
+    try {
+      const res = await publicApi.ask(q);
+      setMessages((prev) => [...prev, { role: "assistant", text: res.answer }]);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Something went wrong";
+      setError(msg);
+    } finally {
+      setLoading(false);
+    }
+  }, [input, loading]);
+
+  const suggestions = [
+    "What are you working on right now?",
+    "How many tasks have you completed today?",
+    "Which agents are active?",
+  ];
 
   return (
     <>
-      <div className="flex-1 flex flex-col items-center justify-center text-center px-4 space-y-6">
-        <div>
-          <h2 className="text-2xl font-bold text-primary mb-2">Live Dashboard</h2>
-          <p className="text-xs text-muted-foreground leading-relaxed max-w-xs mx-auto">
-            Watch OneraOS run marketing, outreach, research, and engineering tasks
-            autonomously for real companies — right now.
-          </p>
-        </div>
-
-        {totalTasks > 0 && (
-          <div className="border border-dashed border-border p-4 w-full max-w-xs">
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">
-              Total tasks by all agents
-            </p>
-            <p className="text-3xl font-bold text-primary tabular-nums">
-              {totalTasks.toLocaleString()}
-            </p>
-          </div>
-        )}
+      {/* Header */}
+      <div className="shrink-0 mb-4">
+        <h3 className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+          Ask OneraOS
+        </h3>
+        <p className="text-[10px] text-muted-foreground leading-relaxed">
+          Ask anything about what the system is doing right now.
+        </p>
       </div>
 
-      <div className="border border-dashed border-border p-5 mt-6">
-        <p className="text-xs font-bold text-primary mb-1">
-          Your own AI operator.
-        </p>
-        <p className="text-[10px] text-muted-foreground mb-4 leading-relaxed">
-          100 free credits. No credit card required. Set up your company and OneraOS
-          starts working in minutes — planning tasks, sending emails, posting tweets,
-          and writing reports.
+      {/* Chat messages area */}
+      <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin space-y-3 mb-4">
+        {messages.length === 0 && (
+          <div className="space-y-2">
+            {suggestions.map((s) => (
+              <button
+                key={s}
+                onClick={() => {
+                  setInput(s);
+                  // auto-submit
+                  setMessages((prev) => [...prev, { role: "user", text: s }]);
+                  setLoading(true);
+                  setError(null);
+                  publicApi
+                    .ask(s)
+                    .then((res) =>
+                      setMessages((prev) => [...prev, { role: "assistant", text: res.answer }])
+                    )
+                    .catch((err) =>
+                      setError(err instanceof Error ? err.message : "Something went wrong")
+                    )
+                    .finally(() => {
+                      setLoading(false);
+                      setInput("");
+                    });
+                }}
+                className="block w-full text-left text-[11px] text-muted-foreground hover:text-primary border border-dashed border-border hover:border-primary/40 p-2.5 transition-colors"
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {messages.map((msg, i) => (
+          <div
+            key={i}
+            className={`text-xs leading-relaxed ${
+              msg.role === "user"
+                ? "text-muted-foreground"
+                : "text-foreground border-l-2 border-primary pl-3"
+            }`}
+          >
+            <span className="text-[9px] uppercase tracking-wider text-muted-foreground/60 block mb-0.5">
+              {msg.role === "user" ? "You" : "OneraOS"}
+            </span>
+            {msg.text}
+          </div>
+        ))}
+
+        {loading && (
+          <div className="text-xs text-primary animate-pulse">
+            <span className="text-[9px] uppercase tracking-wider text-muted-foreground/60 block mb-0.5">
+              OneraOS
+            </span>
+            Thinking...
+          </div>
+        )}
+
+        {error && (
+          <div className="text-xs text-destructive">
+            {error}
+          </div>
+        )}
+
+        <div ref={chatEndRef} />
+      </div>
+
+      {/* Input */}
+      <div className="shrink-0 mb-5">
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleAsk()}
+            placeholder="Ask anything..."
+            disabled={loading}
+            className="flex-1 bg-transparent border border-dashed border-border px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/50 disabled:opacity-50"
+          />
+          <button
+            onClick={handleAsk}
+            disabled={loading || !input.trim()}
+            className="shrink-0 border border-dashed border-border px-3 py-2 text-xs text-primary hover:bg-primary/5 disabled:opacity-30 transition-colors"
+          >
+            Ask
+          </button>
+        </div>
+      </div>
+
+      {/* Stats + CTA */}
+      {totalTasks > 0 && (
+        <div className="shrink-0 border border-dashed border-border p-3 mb-4">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+              Total tasks completed
+            </span>
+            <span className="text-lg font-bold text-primary tabular-nums">
+              {totalTasks.toLocaleString()}
+            </span>
+          </div>
+        </div>
+      )}
+
+      <div className="shrink-0 border border-dashed border-border p-4">
+        <p className="text-xs font-bold text-primary mb-1">Your own AI operator.</p>
+        <p className="text-[10px] text-muted-foreground mb-3 leading-relaxed">
+          100 free credits. No card required. OneraOS starts working in minutes.
         </p>
         <Link href="/login">
           <Button size="sm" className="w-full">

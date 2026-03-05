@@ -283,4 +283,9 @@ export interface PublicLiveData {
 
 export const publicApi = {
   live: () => fetchApi<PublicLiveData>("/api/public/live"),
+  ask: (question: string) =>
+    fetchApi<{ answer: string }>("/api/public/ask", {
+      method: "POST",
+      body: JSON.stringify({ question }),
+    }),
 };
