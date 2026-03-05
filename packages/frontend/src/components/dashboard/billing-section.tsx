@@ -5,11 +5,7 @@ import { Button } from "@/components/ui/button";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { api, type BillingSummary, type CreditPack } from "@/lib/api-client";
 
-interface BillingSectionProps {
-  userId: string;
-}
-
-export function BillingSection({ userId }: BillingSectionProps) {
+export function BillingSection() {
   const [billing, setBilling] = useState<BillingSummary | null>(null);
   const [purchasing, setPurchasing] = useState<string | null>(null);
   const [subscribing, setSubscribing] = useState(false);
@@ -17,12 +13,12 @@ export function BillingSection({ userId }: BillingSectionProps) {
 
   const fetchBilling = useCallback(async () => {
     try {
-      const data = await api.billing.summary(userId);
+      const data = await api.billing.summary();
       setBilling(data);
     } catch {
       // User may not have billing data yet
     }
-  }, [userId]);
+  }, []);
 
   useEffect(() => {
     fetchBilling();
@@ -34,7 +30,7 @@ export function BillingSection({ userId }: BillingSectionProps) {
     setSubscribing(true);
     setError(null);
     try {
-      const { checkoutUrl } = await api.billing.subscribe(userId);
+      const { checkoutUrl } = await api.billing.subscribe();
       window.open(checkoutUrl, "_blank");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to start subscription");
@@ -47,7 +43,7 @@ export function BillingSection({ userId }: BillingSectionProps) {
     setPurchasing(packSlug);
     setError(null);
     try {
-      const { checkoutUrl } = await api.billing.purchase(userId, packSlug);
+      const { checkoutUrl } = await api.billing.purchase(packSlug);
       window.open(checkoutUrl, "_blank");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Purchase failed");

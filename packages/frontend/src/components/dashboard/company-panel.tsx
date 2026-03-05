@@ -14,7 +14,6 @@ interface CompanyPanelProps {
   projectName: string;
   projectId?: string;
   credits: number;
-  userId?: string;
   projectWebsite?: string | null;
   projectDescription?: string | null;
 }
@@ -23,7 +22,6 @@ export function CompanyPanel({
   projectName,
   projectId,
   credits,
-  userId,
   projectWebsite,
   projectDescription,
 }: CompanyPanelProps) {
@@ -241,18 +239,7 @@ export function CompanyPanel({
       )}
 
       {/* Billing & Credits */}
-      {userId ? (
-        <BillingSection userId={userId} />
-      ) : (
-        <div className="border border-dashed border-border p-4">
-          <div className="flex items-center justify-between">
-            <span className="text-xs uppercase tracking-wider text-muted-foreground">
-              Credits
-            </span>
-            <span className="text-lg font-bold text-primary">{credits}</span>
-          </div>
-        </div>
-      )}
+      <BillingSection />
 
       {/* Run agent loop button */}
       <Button

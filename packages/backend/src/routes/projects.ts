@@ -5,18 +5,18 @@ import {
   createProject,
   updateProject,
   deleteProject,
-  ensureUser,
 } from "../services/project.service.js";
 import { researchCompanyUrl } from "@onera/tools";
 import { getSchedulerQueue } from "../queue/scheduler.queue.js";
 import { provisionCompanyEmail, sendWelcomeEmail } from "../services/email.service.js";
 
 export async function projectRoutes(app: FastifyInstance) {
-  // List all projects (optionally filtered by userId)
-  app.get<{ Querystring: { userId?: string } }>(
+  // List all projects for the authenticated user
+  app.get(
     "/api/projects",
     async (request, reply) => {
-      const projects = await listProjects(request.query.userId);
+      const userId = request.authUser!.id;
+      const projects = await listProjects(userId);
       return reply.send(projects);
     }
   );
@@ -36,7 +36,6 @@ export async function projectRoutes(app: FastifyInstance) {
   // Create a project (with optional auto-research from URL)
   app.post<{
     Body: {
-      userId?: string;
       name: string;
       description?: string;
       product?: string;
@@ -48,7 +47,6 @@ export async function projectRoutes(app: FastifyInstance) {
     };
   }>("/api/projects", async (request, reply) => {
     const {
-      userId,
       name,
       description,
       product,
@@ -63,16 +61,12 @@ export async function projectRoutes(app: FastifyInstance) {
       return reply.code(400).send({ error: "Project name is required" });
     }
 
-    // Ensure the user exists in the database
-    const resolvedUserId = userId || "anonymous";
-    await ensureUser({
-      id: resolvedUserId,
-      email: resolvedUserId === "anonymous" ? "anonymous@onera.local" : `${resolvedUserId}@onera.local`,
-    });
+    // User is already authenticated and synced to DB by auth middleware
+    const userId = request.authUser!.id;
 
     // Create the project
     const project = await createProject({
-      userId: resolvedUserId,
+      userId,
       name,
       description,
       product,

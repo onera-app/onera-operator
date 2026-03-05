@@ -13,6 +13,7 @@
   "dependencies": {
     "@azure/communication-email": "^1.1.0",
     "@azure/identity": "^4.13.0",
+    "@clerk/backend": "^3.0.1",
     "@dodopayments/fastify": "^0.2.5",
     "@fastify/cors": "^10.0.0",
     "@fastify/websocket": "^11.0.0",

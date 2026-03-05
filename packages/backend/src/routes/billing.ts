@@ -23,10 +23,9 @@ export async function billingRoutes(app: FastifyInstance) {
   // Creates a DodoPayments checkout session for the subscription product.
   // User gets 50 bonus credits immediately on subscription activation.
   // After 3-day trial, $29/mo auto-charges and grants 500 credits.
-  app.post<{
-    Body: { userId: string };
-  }>("/api/billing/subscribe", async (request, reply) => {
-    const { userId } = request.body;
+  app.post(
+    "/api/billing/subscribe", async (request, reply) => {
+    const userId = request.authUser!.id;
 
     const user = await prisma.user.findUnique({
       where: { id: userId },
@@ -78,9 +77,10 @@ export async function billingRoutes(app: FastifyInstance) {
 
   // ─── Purchase credit pack (one-time top-up) ───────────────────
   app.post<{
-    Body: { userId: string; packSlug: string };
+    Body: { packSlug: string };
   }>("/api/billing/purchase", async (request, reply) => {
-    const { userId, packSlug } = request.body;
+    const userId = request.authUser!.id;
+    const { packSlug } = request.body;
 
     const pack = CREDIT_PACKS.find((p) => p.slug === packSlug);
     if (!pack) {
@@ -259,11 +259,12 @@ export async function billingRoutes(app: FastifyInstance) {
     );
   });
 
-  // ─── Get billing summary ──────────────────────────────────────
-  app.get<{ Params: { userId: string } }>(
-    "/api/billing/:userId",
+  // ─── Get billing summary (authenticated) ──────────────────────
+  app.get(
+    "/api/billing/me",
     async (request, reply) => {
-      const summary = await getBillingSummary(request.params.userId);
+      const userId = request.authUser!.id;
+      const summary = await getBillingSummary(userId);
       if (!summary) {
         return reply.code(404).send({ error: "User not found" });
       }
@@ -271,12 +272,42 @@ export async function billingRoutes(app: FastifyInstance) {
     }
   );
 
-  // ─── Get credit history ───────────────────────────────────────
+  // ─── Get credit history (authenticated) ───────────────────────
+  app.get<{ Querystring: { limit?: string } }>(
+    "/api/billing/me/history",
+    async (request, reply) => {
+      const userId = request.authUser!.id;
+      const limit = parseInt(request.query.limit || "50", 10);
+      const history = await getCreditHistory(userId, limit);
+      return reply.send({ transactions: history });
+    }
+  );
+
+  // ─── Legacy routes: keep for backwards compat, enforce ownership ──
+  app.get<{ Params: { userId: string } }>(
+    "/api/billing/:userId",
+    async (request, reply) => {
+      const authUserId = request.authUser!.id;
+      if (request.params.userId !== authUserId) {
+        return reply.code(403).send({ error: "Access denied" });
+      }
+      const summary = await getBillingSummary(authUserId);
+      if (!summary) {
+        return reply.code(404).send({ error: "User not found" });
+      }
+      return reply.send(summary);
+    }
+  );
+
   app.get<{ Params: { userId: string }; Querystring: { limit?: string } }>(
     "/api/billing/:userId/history",
     async (request, reply) => {
+      const authUserId = request.authUser!.id;
+      if (request.params.userId !== authUserId) {
+        return reply.code(403).send({ error: "Access denied" });
+      }
       const limit = parseInt(request.query.limit || "50", 10);
-      const history = await getCreditHistory(request.params.userId, limit);
+      const history = await getCreditHistory(authUserId, limit);
       return reply.send({ transactions: history });
     }
   );

@@ -10,7 +10,7 @@ import { api } from "@/lib/api-client";
 import Link from "next/link";
 
 export default function NewCompanyPage() {
-  const { isLoaded, isSignedIn, user } = useUser();
+  const { isLoaded, isSignedIn } = useUser();
   const router = useRouter();
 
   const [name, setName] = useState("");
@@ -39,9 +39,7 @@ export default function NewCompanyPage() {
     setError("");
 
     try {
-      const userId = user?.id || "anonymous";
       await api.projects.create({
-        userId,
         name,
         website: website || undefined,
         autoResearch: !!website,

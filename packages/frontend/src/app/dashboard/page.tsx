@@ -23,12 +23,11 @@ export default function DashboardPage() {
   const router = useRouter();
 
   useEffect(() => {
-    const userId = user?.id;
-    if (!userId) return;
+    if (!user?.id) return;
 
     Promise.all([
-      api.projects.list(userId),
-      api.users.credits(userId).catch(() => ({ credits: 100 })),
+      api.projects.list(),
+      api.users.credits().catch(() => ({ credits: 100 })),
     ])
       .then(([p, creditsData]) => {
         setProjects(p);
@@ -125,7 +124,6 @@ export default function DashboardPage() {
             projectName={selectedProject?.name || ""}
             projectId={selectedProject?.id}
             credits={credits}
-            userId={user?.id}
             projectWebsite={selectedProject?.website}
             projectDescription={selectedProject?.description}
           />

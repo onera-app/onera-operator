@@ -1,5 +1,6 @@
 import Fastify from "fastify";
 import cors from "@fastify/cors";
+import { requireAuth } from "./middleware/auth.js";
 
 import { healthRoutes } from "./routes/health.js";
 import { projectRoutes } from "./routes/projects.js";
@@ -11,6 +12,18 @@ import { loopRoutes } from "./routes/loop.js";
 import { userRoutes } from "./routes/users.js";
 import { publicRoutes } from "./routes/public.js";
 import { billingRoutes } from "./routes/billing.js";
+
+// Routes that do NOT require authentication
+const PUBLIC_PATHS = new Set([
+  "/api/health",
+  "/api/public/live",
+  "/api/public/ask",
+  "/api/billing/webhooks",
+]);
+
+function isPublicPath(path: string): boolean {
+  return PUBLIC_PATHS.has(path) || path.startsWith("/api/public/");
+}
 
 export async function buildServer() {
   const app = Fastify({
@@ -24,6 +37,14 @@ export async function buildServer() {
     origin: process.env.FRONTEND_URL || "http://localhost:3000",
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
+  });
+
+  // Auth middleware — runs on every request, skips public paths
+  app.addHook("onRequest", async (request, reply) => {
+    if (isPublicPath(request.url.split("?")[0])) {
+      return; // Skip auth for public routes
+    }
+    await requireAuth(request, reply);
   });
 
   // Register routes

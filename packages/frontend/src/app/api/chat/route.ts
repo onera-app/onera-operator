@@ -6,20 +6,26 @@ const BACKEND_URL =
 
 export async function POST(req: NextRequest) {
   try {
-    // Clerk middleware already protects this route; get userId to scope project access
-    const { userId } = await auth();
+    // Get a Clerk session token to forward to the backend
+    const { getToken } = await auth();
+    const token = await getToken();
 
-    const body = await req.json() as Record<string, unknown>;
+    if (!token) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
 
-    // Inject authenticated userId so backend scopes project lookup to this user
-    const enrichedBody = { ...body, userId };
+    const body = await req.text();
 
     const response = await fetch(`${BACKEND_URL}/api/chat`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify(enrichedBody),
+      body,
     });
 
     if (!response.ok) {

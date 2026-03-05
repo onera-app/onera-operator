@@ -8,29 +8,27 @@ export async function chatRoutes(app: FastifyInstance) {
     Body: {
       messages: Array<{ role: string; content: string }>;
       projectId?: string;
-      userId?: string;
     };
   }>("/api/chat", async (request, reply) => {
-    const { messages, projectId, userId } = request.body;
+    const { messages, projectId } = request.body;
+    const userId = request.authUser!.id;
 
     if (!messages || !Array.isArray(messages)) {
       return reply.code(400).send({ error: "messages array is required" });
     }
 
-    // Build project context scoped to the requesting user
+    // Build project context scoped to the authenticated user
     let projectContext = "No project context available. Ask the user to set up a project first.";
     let resolvedProjectId = projectId;
 
     if (resolvedProjectId) {
       try {
-        // Verify the project belongs to this user (when userId is provided)
-        if (userId) {
-          const project = await prisma.project.findFirst({
-            where: { id: resolvedProjectId, userId },
-          });
-          if (!project) {
-            return reply.code(403).send({ error: "Access denied: project not found for this user" });
-          }
+        // Verify the project belongs to this user
+        const project = await prisma.project.findFirst({
+          where: { id: resolvedProjectId, userId },
+        });
+        if (!project) {
+          return reply.code(403).send({ error: "Access denied: project not found for this user" });
         }
         projectContext = await buildProjectContext(resolvedProjectId);
       } catch {
@@ -41,10 +39,11 @@ export async function chatRoutes(app: FastifyInstance) {
     // Fall back to the user's most recent project
     if (!resolvedProjectId) {
       const firstProject = await prisma.project.findFirst({
-        where: userId ? { userId } : undefined,
+        where: { userId },
         orderBy: { updatedAt: "desc" },
       });
       if (firstProject) {
+        resolvedProjectId = firstProject.id;
         projectContext = await buildProjectContext(firstProject.id);
       }
     }

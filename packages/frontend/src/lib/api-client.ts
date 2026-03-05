@@ -1,12 +1,30 @@
 const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3001";
 
+// ---------------------------------------------------------------------------
+// Auth token injection — set by useApiAuth() hook from Clerk session
+// ---------------------------------------------------------------------------
+
+let _getToken: (() => Promise<string | null>) | null = null;
+
+/**
+ * Called once from the root layout to inject Clerk's getToken function.
+ * This allows the api-client to attach Authorization headers automatically.
+ */
+export function setAuthTokenGetter(fn: () => Promise<string | null>) {
+  _getToken = fn;
+}
+
 async function fetchApi<T>(
   path: string,
   options?: RequestInit
 ): Promise<T> {
+  // Get Clerk session token if available
+  const token = _getToken ? await _getToken() : null;
+
   const res = await fetch(`${API_BASE}${path}`, {
     headers: {
       "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...options?.headers,
     },
     ...options,
@@ -24,10 +42,8 @@ async function fetchApi<T>(
 // Projects
 export const api = {
   projects: {
-    list: (userId?: string) =>
-      fetchApi<Project[]>(
-        `/api/projects${userId ? `?userId=${encodeURIComponent(userId)}` : ""}`
-      ),
+    list: () =>
+      fetchApi<Project[]>("/api/projects"),
     get: (id: string) => fetchApi<Project>(`/api/projects/${id}`),
     create: (data: CreateProjectData) =>
       fetchApi<Project>("/api/projects", {
@@ -102,26 +118,25 @@ export const api = {
   },
 
   users: {
-    credits: (userId: string) =>
-      fetchApi<{ credits: number }>(`/api/users/${encodeURIComponent(userId)}/credits`),
+    credits: () =>
+      fetchApi<{ credits: number }>("/api/users/me/credits"),
   },
 
   billing: {
-    summary: (userId: string) =>
-      fetchApi<BillingSummary>(`/api/billing/${encodeURIComponent(userId)}`),
-    history: (userId: string, limit?: number) =>
+    summary: () =>
+      fetchApi<BillingSummary>("/api/billing/me"),
+    history: (limit?: number) =>
       fetchApi<{ transactions: CreditTransaction[] }>(
-        `/api/billing/${encodeURIComponent(userId)}/history${limit ? `?limit=${limit}` : ""}`
+        `/api/billing/me/history${limit ? `?limit=${limit}` : ""}`
       ),
-    subscribe: (userId: string) =>
+    subscribe: () =>
       fetchApi<{ checkoutUrl: string }>("/api/billing/subscribe", {
         method: "POST",
-        body: JSON.stringify({ userId }),
       }),
-    purchase: (userId: string, packSlug: string) =>
+    purchase: (packSlug: string) =>
       fetchApi<{ checkoutUrl: string }>("/api/billing/purchase", {
         method: "POST",
-        body: JSON.stringify({ userId, packSlug }),
+        body: JSON.stringify({ packSlug }),
       }),
   },
 
@@ -156,7 +171,6 @@ export interface Project {
 }
 
 export interface CreateProjectData {
-  userId?: string;
   name: string;
   description?: string;
   product?: string;
