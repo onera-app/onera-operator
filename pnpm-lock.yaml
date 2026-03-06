@@ -13,6 +13,9 @@ importers:
       '@onera/ai':
         specifier: workspace:*
         version: link:../ai
+      '@onera/database':
+        specifier: workspace:*
+        version: link:../database
       '@onera/shared':
         specifier: workspace:*
         version: link:../shared
@@ -253,6 +256,9 @@ importers:
       '@onera/ai':
         specifier: workspace:*
         version: link:../ai
+      '@onera/database':
+        specifier: workspace:*
+        version: link:../database
       ai:
         specifier: ^4.1.0
         version: 4.3.19(react@19.2.4)(zod@3.25.76)
