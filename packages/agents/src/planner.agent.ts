@@ -39,8 +39,12 @@ export async function runPlannerAgent(input: PlannerInput) {
       "\n- NEVER create tasks to 'set up social media accounts' or 'create profiles'. Assume the startup already has social media accounts configured." +
       "\n- NEVER suggest creating new accounts, registering domains, or setting up infrastructure" +
       "\n- Focus on content creation, research, outreach emails, competitive analysis, and engineering tasks" +
-      "\n- Engineering tasks (agentName: engineer) can include: data analysis scripts, automation, web scraping, API integrations, analytics scripts" +
-      "\n- ENGINEERING tasks are for technical automation work that can be executed as code" +
+      "\n- Engineering tasks (agentName: engineer) should automate what a startup COO would want built:" +
+      "\n  * Growth automation: SEO audit scripts, conversion funnel analysis, landing page performance scrapers, A/B test result analyzers, lead scoring calculators" +
+      "\n  * Operational efficiency: report generators, data pipeline scripts, CRM data cleanup, workflow automation, KPI dashboard builders, churn analysis" +
+      "\n  * Competitive intelligence: competitor pricing scrapers, feature comparison matrices, market size estimators, trend analysis scripts, review sentiment analyzers" +
+      "\n- ENGINEERING tasks must produce actionable output the founder can use immediately (a report, a dataset, a working script, a visualization)" +
+      "\n- Prefer tasks that save the founder hours of manual work or surface insights they wouldn't find on their own" +
       "\n\nTWITTER TASK guidelines:" +
       "\n- Twitter tasks are portfolio showcase tweets. We tweet FROM @onerachat ABOUT the onboarded startup." +
       "\n- Each tweet task should specify a SPECIFIC angle: a pain point the product solves, a feature highlight, or a user story" +
