@@ -47,7 +47,7 @@ const executionAgents: Record<string, AgentExecutor> = {
 export function getExecutionAgent(
   agentName: string
 ): AgentExecutor | undefined {
-  return executionAgents[agentName];
+  return executionAgents[agentName.toLowerCase()];
 }
 
 export function listAgentNames(): string[] {

@@ -25,7 +25,7 @@ import {
 export function streamChatAgent(
   messages: Message[],
   projectContext: string,
-  context?: { projectId?: string; userId?: string; apiBaseUrl?: string; authToken?: string }
+  context?: { projectId?: string; userId?: string; apiBaseUrl?: string; authToken?: string; internalSecret?: string }
 ) {
   const model = getModelForAgent("chat");
   const taskTools = createTaskManagerTools({
@@ -33,6 +33,7 @@ export function streamChatAgent(
     userId: context?.userId,
     apiBaseUrl: context?.apiBaseUrl,
     authToken: context?.authToken,
+    internalSecret: context?.internalSecret,
   });
 
   return streamText({

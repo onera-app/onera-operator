@@ -6,6 +6,8 @@ interface TaskToolContext {
   userId?: string;
   apiBaseUrl?: string;
   authToken?: string;
+  /** Internal service secret for backend→backend calls (bypasses JWT) */
+  internalSecret?: string;
 }
 
 const categoryEnum = z.enum([
@@ -35,13 +37,19 @@ async function requestApi<T>(
   baseUrl: string,
   path: string,
   options?: RequestInit,
-  authToken?: string
+  authToken?: string,
+  internalAuth?: { secret: string; userId: string }
 ): Promise<T> {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
     ...(options?.headers as Record<string, string>),
   };
-  if (authToken) {
+
+  // Prefer internal auth (never expires) over JWT (can expire mid-stream)
+  if (internalAuth) {
+    headers["X-Internal-Secret"] = internalAuth.secret;
+    headers["X-Internal-User-Id"] = internalAuth.userId;
+  } else if (authToken) {
     headers["Authorization"] = `Bearer ${authToken}`;
   }
 
@@ -59,6 +67,14 @@ async function requestApi<T>(
   return (await response.json()) as T;
 }
 
+/** Build internal auth headers from context (preferred over JWT which expires) */
+function getInternalAuth(context: TaskToolContext) {
+  if (context.internalSecret && context.userId) {
+    return { secret: context.internalSecret, userId: context.userId };
+  }
+  return undefined;
+}
+
 async function resolveProjectId(
   context: TaskToolContext,
   requestedProjectId?: string
@@ -74,7 +90,8 @@ async function resolveProjectId(
     baseUrl,
     `/api/projects?userId=${encodeURIComponent(context.userId)}`,
     undefined,
-    context.authToken
+    context.authToken,
+    getInternalAuth(context)
   );
 
   if (projects.length === 0) {
@@ -90,7 +107,8 @@ async function assertProjectAccess(context: TaskToolContext, projectId: string) 
     baseUrl,
     `/api/projects/${projectId}`,
     undefined,
-    context.authToken
+    context.authToken,
+    getInternalAuth(context)
   );
   if (project.userId !== context.userId) {
     throw new Error("Access denied for this project.");
@@ -103,7 +121,8 @@ async function assertTaskAccess(context: TaskToolContext, taskId: string) {
     baseUrl,
     `/api/tasks/${taskId}`,
     undefined,
-    context.authToken
+    context.authToken,
+    getInternalAuth(context)
   );
   const projectId = String(task.projectId || "");
   if (!projectId) {
@@ -144,7 +163,8 @@ export function createTaskManagerTools(context: TaskToolContext) {
         baseUrl,
         `/api/tasks?${params.toString()}`,
         undefined,
-        context.authToken
+        context.authToken,
+        getInternalAuth(context)
       );
 
       return {
@@ -199,7 +219,7 @@ export function createTaskManagerTools(context: TaskToolContext) {
           automatable,
           agentName,
         }),
-      }, context.authToken);
+      }, context.authToken, getInternalAuth(context));
 
       return {
         message: `Created task "${String(created.title)}"`,
@@ -271,7 +291,7 @@ export function createTaskManagerTools(context: TaskToolContext) {
       const updated = await requestApi<JsonRecord>(baseUrl, `/api/tasks/${taskId}`, {
         method: "PUT",
         body: JSON.stringify(payload),
-      }, context.authToken);
+      }, context.authToken, getInternalAuth(context));
 
       return {
         message: `Updated task "${String(updated.title)}"`,
@@ -301,7 +321,7 @@ export function createTaskManagerTools(context: TaskToolContext) {
       await assertTaskAccess(context, taskId);
       await requestApi<void>(baseUrl, `/api/tasks/${taskId}`, {
         method: "DELETE",
-      }, context.authToken);
+      }, context.authToken, getInternalAuth(context));
       return { message: `Deleted task ${taskId}` };
     },
   });
@@ -324,7 +344,7 @@ export function createTaskManagerTools(context: TaskToolContext) {
       }>(baseUrl, `/api/tasks/${taskId}/execute`, {
         method: "POST",
         body: JSON.stringify({}),
-      }, context.authToken);
+      }, context.authToken, getInternalAuth(context));
 
       return {
         message: result.message,

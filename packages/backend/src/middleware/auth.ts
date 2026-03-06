@@ -28,16 +28,27 @@ declare module "fastify" {
 }
 
 // ---------------------------------------------------------------------------
+// Internal service secret — used for tool→API calls within the same backend.
+// The chat route already verified the user; tool calls send
+// X-Internal-Secret + X-Internal-User-Id so they don't rely on the
+// short-lived Clerk JWT (which can expire mid-stream).
+// ---------------------------------------------------------------------------
+
+export const INTERNAL_SECRET =
+  process.env.INTERNAL_API_SECRET || "onera-internal-2026";
+
+// ---------------------------------------------------------------------------
 // Auth middleware — verifies Clerk JWT and syncs user to DB
 // ---------------------------------------------------------------------------
 
 /**
  * Fastify preHandler that:
- * 1. Extracts Bearer token from the Authorization header
- * 2. Verifies it using Clerk's JWT verification
- * 3. Fetches the full user profile from Clerk (email, name, image)
- * 4. Upserts the user in our DB (ensuring real email is stored)
- * 5. Attaches `request.authUser` for downstream route handlers
+ * 1. Checks for trusted internal service calls (X-Internal-Secret header)
+ * 2. Otherwise extracts Bearer token from the Authorization header
+ * 3. Verifies it using Clerk's JWT verification
+ * 4. Fetches the full user profile from Clerk (email, name, image)
+ * 5. Upserts the user in our DB (ensuring real email is stored)
+ * 6. Attaches `request.authUser` for downstream route handlers
  *
  * Returns 401 if no token or verification fails.
  */
@@ -45,6 +56,33 @@ export async function requireAuth(
   request: FastifyRequest,
   reply: FastifyReply
 ): Promise<void> {
+  // --- Fast path: trusted internal call from chat agent tools ---
+  const internalSecret = request.headers["x-internal-secret"] as
+    | string
+    | undefined;
+  const internalUserId = request.headers["x-internal-user-id"] as
+    | string
+    | undefined;
+
+  if (internalSecret && internalUserId && internalSecret === INTERNAL_SECRET) {
+    // Look up the user from our DB (already synced from a prior real auth)
+    const { prisma } = await import("@onera/database");
+    const user = await prisma.user.findUnique({
+      where: { id: internalUserId },
+    });
+    if (user && user.email) {
+      request.authUser = {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        image: user.image,
+      };
+      return; // Authenticated via internal secret
+    }
+    // If user not found, fall through to normal auth
+  }
+
+  // --- Normal path: Clerk JWT ---
   const authHeader = request.headers.authorization;
 
   if (!authHeader?.startsWith("Bearer ")) {

@@ -45,20 +45,23 @@ function parseOutreachEmails(resultJson: string): OutreachEmail[] | null {
     return generates.map((gen, i) => {
       const g = gen.result;
       const subject = String(g?.subject ?? "No subject");
+      // Match send result by subject, then by index as fallback
       const send =
         sends.find((s) => String(s.result?.subject) === subject) ?? sends[i];
       const s = send?.result;
+      // Get the recipient email: prefer sendEmail result, then generateEmail's recipientEmail
+      const to = String(s?.to || g?.recipientEmail || g?.to || "");
       return {
         subject,
         body: String(g?.body ?? ""),
         recipientName: String(g?.recipientName ?? ""),
         recipientCompany: String(g?.recipientCompany ?? ""),
-        to: String(s?.to ?? ""),
+        to,
         sendStatus: (["sent", "queued", "rejected", "failed"].includes(
           String(s?.status)
         )
           ? String(s?.status)
-          : "unknown") as OutreachEmail["sendStatus"],
+          : to.length === 0 ? "failed" : "unknown") as OutreachEmail["sendStatus"],
       };
     });
   } catch {
@@ -363,8 +366,14 @@ function parseResult(result: string | null): string | null {
       const sends = (r.toolResults as Array<{ tool: string; result: Record<string, unknown> }>)
         .filter((tr) => tr.tool === "sendEmail" && (tr.result as Record<string, unknown>)?.status === "sent");
       if (sends.length > 0) {
-        const recipients = sends.map((s) => (s.result as Record<string, unknown>).to).join(", ");
-        return `Sent ${sends.length} email${sends.length > 1 ? "s" : ""} to ${recipients}`;
+        const recipients = sends
+          .map((s) => (s.result as Record<string, unknown>).to)
+          .filter((t) => t && String(t).length > 0)
+          .join(", ");
+        if (recipients.length > 0) {
+          return `Sent ${sends.length} email${sends.length > 1 ? "s" : ""} to ${recipients}`;
+        }
+        return `Sent ${sends.length} email${sends.length > 1 ? "s" : ""}`;
       }
     }
     // For tweets

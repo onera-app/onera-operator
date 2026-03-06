@@ -31,13 +31,17 @@ export async function runOutreachAgent(input: OutreachAgentInput) {
       "## Writing style\n" +
       "NEVER use dashes (--), em-dashes, or en-dashes in any output. Use periods, commas, or colons instead.\n\n" +
       "## Workflow (follow this exactly)\n" +
-      "1. Use findLeads to identify as many relevant targets as possible. Be ambitious. " +
+      "1. Use findLeads to identify relevant targets. Be ambitious. " +
       "If the task specifies a number, use that. Otherwise, aim for 10 to 20 leads per run.\n" +
-      "2. For EACH lead, do a generate then send pair:\n" +
-      "   a. Call generateEmail with the lead's info and full startup context\n" +
+      "   findLeads returns structured data: an array of lead objects, each with " +
+      "companyName, contactName, contactRole, email, companyUrl, reason, and outreachAngle.\n" +
+      "2. For EACH lead from the results, do a generate then send pair:\n" +
+      "   a. Call generateEmail using the lead's email, contactName, companyName, companyUrl, " +
+      "contactRole, and the full startup context. Pass the lead's companyUrl as recipientCompanyUrl.\n" +
       "   b. Self-review the output: does it mention your company name + URL, the recipient's company, " +
       "and have a clear CTA? If not, call generateEmail again.\n" +
       "   c. Immediately call sendEmail with the generated subject and body. " +
+      "Set 'to' to the lead's email address from findLeads. " +
       "ALWAYS set 'from' to the Company Email from the startup context (e.g. companyname@onera.app). " +
       "ALWAYS set 'replyTo' to the Founder Email from the startup context. " +
       "ALWAYS set 'projectId' to the Project ID from the startup context.\n" +
@@ -45,8 +49,8 @@ export async function runOutreachAgent(input: OutreachAgentInput) {
       "3. After sending all emails, use notifyFounder to update the founder.\n\n" +
       "IMPORTANT: You MUST call sendEmail after each generateEmail. Do NOT batch all generates first. " +
       "Generate one, send one, then move to the next lead. This keeps you within step limits.\n\n" +
-      "Be strategic about who to reach out to and personalize each email. " +
-      "If you have the recipient's company URL from findLeads, pass it as recipientCompanyUrl to generateEmail.\n\n" +
+      "CRITICAL: Always use the email address from the findLeads result for each lead. " +
+      "NEVER make up or hallucinate email addresses. If a lead has no email, skip it.\n\n" +
       "## Founder Notifications\n" +
       "After completing outreach, use notifyFounder to give the founder a quick update: " +
       "how many leads you found, how many emails went out, and anything notable. " +
