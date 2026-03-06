@@ -5,6 +5,7 @@ interface TaskToolContext {
   projectId?: string;
   userId?: string;
   apiBaseUrl?: string;
+  authToken?: string;
 }
 
 const categoryEnum = z.enum([
@@ -33,14 +34,20 @@ type JsonRecord = Record<string, unknown>;
 async function requestApi<T>(
   baseUrl: string,
   path: string,
-  options?: RequestInit
+  options?: RequestInit,
+  authToken?: string
 ): Promise<T> {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    ...(options?.headers as Record<string, string>),
+  };
+  if (authToken) {
+    headers["Authorization"] = `Bearer ${authToken}`;
+  }
+
   const response = await fetch(`${baseUrl}${path}`, {
-    headers: {
-      "Content-Type": "application/json",
-      ...options?.headers,
-    },
     ...options,
+    headers,
   });
 
   if (!response.ok) {
@@ -65,7 +72,9 @@ async function resolveProjectId(
   const baseUrl = context.apiBaseUrl || "http://localhost:3001";
   const projects = await requestApi<Array<{ id: string }>>(
     baseUrl,
-    `/api/projects?userId=${encodeURIComponent(context.userId)}`
+    `/api/projects?userId=${encodeURIComponent(context.userId)}`,
+    undefined,
+    context.authToken
   );
 
   if (projects.length === 0) {
@@ -77,7 +86,12 @@ async function resolveProjectId(
 async function assertProjectAccess(context: TaskToolContext, projectId: string) {
   if (!context.userId) return;
   const baseUrl = context.apiBaseUrl || "http://localhost:3001";
-  const project = await requestApi<JsonRecord>(baseUrl, `/api/projects/${projectId}`);
+  const project = await requestApi<JsonRecord>(
+    baseUrl,
+    `/api/projects/${projectId}`,
+    undefined,
+    context.authToken
+  );
   if (project.userId !== context.userId) {
     throw new Error("Access denied for this project.");
   }
@@ -85,7 +99,12 @@ async function assertProjectAccess(context: TaskToolContext, projectId: string) 
 
 async function assertTaskAccess(context: TaskToolContext, taskId: string) {
   const baseUrl = context.apiBaseUrl || "http://localhost:3001";
-  const task = await requestApi<JsonRecord>(baseUrl, `/api/tasks/${taskId}`);
+  const task = await requestApi<JsonRecord>(
+    baseUrl,
+    `/api/tasks/${taskId}`,
+    undefined,
+    context.authToken
+  );
   const projectId = String(task.projectId || "");
   if (!projectId) {
     throw new Error("Task is missing project linkage.");
@@ -123,7 +142,9 @@ export function createTaskManagerTools(context: TaskToolContext) {
 
       const tasks = await requestApi<JsonRecord[]>(
         baseUrl,
-        `/api/tasks?${params.toString()}`
+        `/api/tasks?${params.toString()}`,
+        undefined,
+        context.authToken
       );
 
       return {
@@ -178,7 +199,7 @@ export function createTaskManagerTools(context: TaskToolContext) {
           automatable,
           agentName,
         }),
-      });
+      }, context.authToken);
 
       return {
         message: `Created task "${String(created.title)}"`,
@@ -250,7 +271,7 @@ export function createTaskManagerTools(context: TaskToolContext) {
       const updated = await requestApi<JsonRecord>(baseUrl, `/api/tasks/${taskId}`, {
         method: "PUT",
         body: JSON.stringify(payload),
-      });
+      }, context.authToken);
 
       return {
         message: `Updated task "${String(updated.title)}"`,
@@ -280,7 +301,7 @@ export function createTaskManagerTools(context: TaskToolContext) {
       await assertTaskAccess(context, taskId);
       await requestApi<void>(baseUrl, `/api/tasks/${taskId}`, {
         method: "DELETE",
-      });
+      }, context.authToken);
       return { message: `Deleted task ${taskId}` };
     },
   });
@@ -302,7 +323,8 @@ export function createTaskManagerTools(context: TaskToolContext) {
         agentName: string;
       }>(baseUrl, `/api/tasks/${taskId}/execute`, {
         method: "POST",
-      });
+        body: JSON.stringify({}),
+      }, context.authToken);
 
       return {
         message: result.message,

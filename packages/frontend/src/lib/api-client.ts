@@ -248,6 +248,8 @@ export interface TaskMetrics {
   failed: number;
   inProgress: number;
   completedToday: number;
+  tweetsPostedToday: number;
+  emailsSentToday: number;
 }
 
 export interface AgentStatus {

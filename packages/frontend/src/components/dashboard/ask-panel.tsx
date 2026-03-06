@@ -15,7 +15,7 @@ export function AskPanel({ projectId }: AskPanelProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const { messages, input, handleInputChange, handleSubmit, isLoading } =
+  const { messages, input, handleInputChange, handleSubmit, isLoading, append } =
     useChat({
       api: "/api/chat",
       body: { projectId },
@@ -77,11 +77,10 @@ export function AskPanel({ projectId }: AskPanelProps) {
                   <button
                     key={s}
                     type="button"
-                    className="block w-full text-left text-[11px] text-muted-foreground hover:text-primary border border-dashed border-border hover:border-primary/40 px-3 py-2 transition-colors"
+                    disabled={isLoading}
+                    className="block w-full text-left text-[11px] text-muted-foreground hover:text-primary border border-dashed border-border hover:border-primary/40 px-3 py-2 transition-colors disabled:opacity-50"
                     onClick={() => {
-                      handleInputChange({
-                        target: { value: s },
-                      } as React.ChangeEvent<HTMLInputElement>);
+                      append({ role: "user", content: s });
                     }}
                   >
                     {s}

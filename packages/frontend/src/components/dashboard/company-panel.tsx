@@ -171,6 +171,24 @@ export function CompanyPanel({
         </div>
       </div>
 
+      {/* Business stats (last 24h) */}
+      {metrics && (metrics.completedToday > 0 || metrics.tweetsPostedToday > 0 || metrics.emailsSentToday > 0) && (
+        <div className="grid grid-cols-3 gap-2">
+          <div className="border border-dashed border-border p-3 text-center">
+            <p className="text-lg font-bold text-primary font-mono">{metrics.completedToday}</p>
+            <p className="text-[9px] uppercase tracking-wider text-muted-foreground mt-0.5">Tasks / 24h</p>
+          </div>
+          <div className="border border-dashed border-border p-3 text-center">
+            <p className="text-lg font-bold text-primary font-mono">{metrics.tweetsPostedToday}</p>
+            <p className="text-[9px] uppercase tracking-wider text-muted-foreground mt-0.5">Tweets / 24h</p>
+          </div>
+          <div className="border border-dashed border-border p-3 text-center">
+            <p className="text-lg font-bold text-primary font-mono">{metrics.emailsSentToday}</p>
+            <p className="text-[9px] uppercase tracking-wider text-muted-foreground mt-0.5">Emails / 24h</p>
+          </div>
+        </div>
+      )}
+
       {/* Live agent activity feed */}
       <LiveFeed projectId={projectId} />
 

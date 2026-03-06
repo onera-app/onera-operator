@@ -49,6 +49,9 @@ export async function chatRoutes(app: FastifyInstance) {
     }
 
     // Stream the chat response
+    // Forward the auth token so internal tool→API calls are authenticated
+    const authToken = request.headers.authorization?.slice(7) || "";
+
     const result = streamChatAgent(
       messages.map((m) => ({
         id: crypto.randomUUID(),
@@ -60,6 +63,7 @@ export async function chatRoutes(app: FastifyInstance) {
         projectId: resolvedProjectId,
         userId,
         apiBaseUrl: process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3001",
+        authToken,
       }
     );
 

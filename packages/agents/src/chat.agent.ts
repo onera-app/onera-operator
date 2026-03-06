@@ -25,13 +25,14 @@ import {
 export function streamChatAgent(
   messages: Message[],
   projectContext: string,
-  context?: { projectId?: string; userId?: string; apiBaseUrl?: string }
+  context?: { projectId?: string; userId?: string; apiBaseUrl?: string; authToken?: string }
 ) {
   const model = getModelForAgent("chat");
   const taskTools = createTaskManagerTools({
     projectId: context?.projectId,
     userId: context?.userId,
     apiBaseUrl: context?.apiBaseUrl,
+    authToken: context?.authToken,
   });
 
   return streamText({
@@ -80,6 +81,6 @@ export function streamChatAgent(
       notifyFounder,
       ...taskTools,
     },
-    maxSteps: 10,
+    maxSteps: 15,
   });
 }

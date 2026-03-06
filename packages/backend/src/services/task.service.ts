@@ -1,4 +1,4 @@
-import { prisma, TaskStatus, type TaskCategory, type TaskPriority } from "@onera/database";
+import { prisma, TaskStatus, TweetQueueStatus, type TaskCategory, type TaskPriority } from "@onera/database";
 
 export interface TaskFilters {
   projectId?: string;
@@ -144,7 +144,7 @@ export async function getRecentCompletedTasks(
 export async function getTaskMetrics(projectId: string) {
   const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
-  const [completed, pending, failed, inProgress, completedToday] = await Promise.all([
+  const [completed, pending, failed, inProgress, completedToday, tweetsPostedToday, emailsSentToday] = await Promise.all([
     prisma.task.count({
       where: { projectId, status: TaskStatus.COMPLETED },
     }),
@@ -164,7 +164,22 @@ export async function getTaskMetrics(projectId: string) {
         completedAt: { gte: since24h },
       },
     }),
+    prisma.tweetQueue.count({
+      where: {
+        projectId,
+        status: TweetQueueStatus.POSTED,
+        postedAt: { gte: since24h },
+      },
+    }),
+    prisma.task.count({
+      where: {
+        projectId,
+        agentName: "outreach",
+        status: TaskStatus.COMPLETED,
+        completedAt: { gte: since24h },
+      },
+    }),
   ]);
 
-  return { completed, pending, failed, inProgress, completedToday };
+  return { completed, pending, failed, inProgress, completedToday, tweetsPostedToday, emailsSentToday };
 }

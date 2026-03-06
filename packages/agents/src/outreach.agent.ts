@@ -31,7 +31,8 @@ export async function runOutreachAgent(input: OutreachAgentInput) {
       "## Writing style\n" +
       "NEVER use dashes (--), em-dashes, or en-dashes in any output. Use periods, commas, or colons instead.\n\n" +
       "## Workflow (follow this exactly)\n" +
-      "1. Use findLeads to identify 3 to 5 targets (keep it focused, do NOT generate more than 5 leads)\n" +
+      "1. Use findLeads to identify as many relevant targets as possible. Be ambitious. " +
+      "If the task specifies a number, use that. Otherwise, aim for 10 to 20 leads per run.\n" +
       "2. For EACH lead, do a generate then send pair:\n" +
       "   a. Call generateEmail with the lead's info and full startup context\n" +
       "   b. Self-review the output: does it mention your company name + URL, the recipient's company, " +
@@ -57,7 +58,7 @@ export async function runOutreachAgent(input: OutreachAgentInput) {
       findLeads,
       notifyFounder,
     },
-    maxSteps: 20,
+    maxSteps: 50,
     prompt:
       `## Task\n${input.taskDescription}\n\n` +
       `## Startup Context\n${input.projectContext}\n\n` +
