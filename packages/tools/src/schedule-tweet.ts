@@ -19,10 +19,10 @@ export const scheduleTweet = tool({
     tweet: z.string().max(280).describe("The tweet text to post (max 280 characters)"),
     scheduledTime: z
       .string()
-      .optional()
-      .describe("ISO datetime string for when to post (optional, posts immediately if omitted)"),
+      .describe("ISO datetime string for when to post. Use an empty string to post immediately."),
   }),
-  execute: async ({ tweet, scheduledTime }) => {
+  execute: async ({ tweet, scheduledTime: rawScheduledTime }) => {
+    const scheduledTime = rawScheduledTime.length > 0 ? rawScheduledTime : undefined;
     const apiKey = process.env.TWITTER_API_KEY;
     const apiSecret = process.env.TWITTER_API_SECRET;
     const accessToken = process.env.TWITTER_ACCESS_TOKEN;

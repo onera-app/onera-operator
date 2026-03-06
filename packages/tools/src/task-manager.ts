@@ -100,12 +100,20 @@ export function createTaskManagerTools(context: TaskToolContext) {
     description:
       "List project tasks. Use this first if you need ids before editing tasks.",
     parameters: z.object({
-      projectId: z.string().optional(),
-      status: statusEnum.optional(),
-      category: categoryEnum.optional(),
-      limit: z.number().min(1).max(50).optional(),
+      projectId: z.string().describe("The project ID. Use an empty string to auto-resolve from context."),
+      status: z.enum([
+        "PENDING", "IN_PROGRESS", "COMPLETED", "FAILED", "CANCELLED", "ALL",
+      ]).describe("Filter by status. Use 'ALL' to list all statuses."),
+      category: z.enum([
+        "GROWTH", "MARKETING", "OUTREACH", "PRODUCT", "ANALYTICS",
+        "OPERATIONS", "RESEARCH", "ENGINEERING", "TWITTER", "ALL",
+      ]).describe("Filter by category. Use 'ALL' to list all categories."),
+      limit: z.number().min(1).max(50).describe("Maximum number of tasks to return. Use 20 for a standard list."),
     }),
-    execute: async ({ projectId, status, category, limit }) => {
+    execute: async ({ projectId: rawProjectId, status: rawStatus, category: rawCategory, limit }) => {
+      const projectId = rawProjectId.length > 0 ? rawProjectId : undefined;
+      const status = rawStatus === "ALL" ? undefined : rawStatus;
+      const category = rawCategory === "ALL" ? undefined : rawCategory;
       const resolvedProjectId = await resolveProjectId(context, projectId);
       await assertProjectAccess(context, resolvedProjectId);
 
@@ -121,7 +129,7 @@ export function createTaskManagerTools(context: TaskToolContext) {
       return {
         projectId: resolvedProjectId,
         count: tasks.length,
-        tasks: tasks.slice(0, limit ?? 20).map((t) => ({
+        tasks: tasks.slice(0, limit).map((t) => ({
           id: t.id,
           title: t.title,
           category: t.category,
@@ -135,25 +143,27 @@ export function createTaskManagerTools(context: TaskToolContext) {
 
   const createProjectTask = tool({
     description:
-      "Create a new task for the project backlog with category, priority, and optional agent.",
+      "Create a new task for the project backlog with category, priority, and agent.",
     parameters: z.object({
-      projectId: z.string().optional(),
-      title: z.string().min(3),
-      description: z.string().min(8),
-      category: categoryEnum.default("OPERATIONS"),
-      priority: priorityEnum.default("MEDIUM"),
-      automatable: z.boolean().optional(),
-      agentName: z.string().optional(),
+      projectId: z.string().describe("The project ID. Use an empty string to auto-resolve from context."),
+      title: z.string().min(3).describe("Task title (min 3 chars)."),
+      description: z.string().min(8).describe("Task description (min 8 chars)."),
+      category: categoryEnum.describe("Task category."),
+      priority: priorityEnum.describe("Task priority level."),
+      automatable: z.boolean().describe("Whether this task can be automated by an agent. Use true if unsure."),
+      agentName: z.string().describe("Agent to assign. Use an empty string for no agent assignment."),
     }),
     execute: async ({
-      projectId,
+      projectId: rawProjectId,
       title,
       description,
       category,
       priority,
       automatable,
-      agentName,
+      agentName: rawAgentName,
     }) => {
+      const projectId = rawProjectId.length > 0 ? rawProjectId : undefined;
+      const agentName = rawAgentName.length > 0 ? rawAgentName : undefined;
       const resolvedProjectId = await resolveProjectId(context, projectId);
       await assertProjectAccess(context, resolvedProjectId);
 
@@ -165,7 +175,7 @@ export function createTaskManagerTools(context: TaskToolContext) {
           description,
           category,
           priority,
-          automatable: automatable ?? true,
+          automatable,
           agentName,
         }),
       });
@@ -185,28 +195,43 @@ export function createTaskManagerTools(context: TaskToolContext) {
 
   const updateProjectTask = tool({
     description:
-      "Update task fields like title, description, category, priority, status, automatable, and agentName.",
+      "Update task fields. Set any field to its sentinel value to leave it unchanged: " +
+      "empty string for text fields, 'UNCHANGED' for enums, -1 for automatable (treat as unchanged).",
     parameters: z.object({
-      taskId: z.string(),
-      title: z.string().optional(),
-      description: z.string().optional(),
-      category: categoryEnum.optional(),
-      priority: priorityEnum.optional(),
-      status: statusEnum.optional(),
-      automatable: z.boolean().optional(),
-      agentName: z.string().nullable().optional(),
+      taskId: z.string().describe("The ID of the task to update."),
+      title: z.string().describe("New title. Use an empty string to leave unchanged."),
+      description: z.string().describe("New description. Use an empty string to leave unchanged."),
+      category: z.enum([
+        "GROWTH", "MARKETING", "OUTREACH", "PRODUCT", "ANALYTICS",
+        "OPERATIONS", "RESEARCH", "ENGINEERING", "TWITTER", "UNCHANGED",
+      ]).describe("New category. Use 'UNCHANGED' to leave unchanged."),
+      priority: z.enum(["CRITICAL", "HIGH", "MEDIUM", "LOW", "UNCHANGED"])
+        .describe("New priority. Use 'UNCHANGED' to leave unchanged."),
+      status: z.enum([
+        "PENDING", "IN_PROGRESS", "COMPLETED", "FAILED", "CANCELLED", "UNCHANGED",
+      ]).describe("New status. Use 'UNCHANGED' to leave unchanged."),
+      automatable: z.string().describe("'true', 'false', or 'unchanged'. Whether the task can be automated."),
+      agentName: z.string().describe("New agent name. Use an empty string to leave unchanged, or 'none' to unassign."),
     }),
     execute: async ({
       taskId,
-      title,
-      description,
-      category,
-      priority,
-      status,
-      automatable,
-      agentName,
+      title: rawTitle,
+      description: rawDescription,
+      category: rawCategory,
+      priority: rawPriority,
+      status: rawStatus,
+      automatable: rawAutomatable,
+      agentName: rawAgentName,
     }) => {
       await assertTaskAccess(context, taskId);
+
+      const title = rawTitle.length > 0 ? rawTitle : undefined;
+      const description = rawDescription.length > 0 ? rawDescription : undefined;
+      const category = rawCategory !== "UNCHANGED" ? rawCategory : undefined;
+      const priority = rawPriority !== "UNCHANGED" ? rawPriority : undefined;
+      const status = rawStatus !== "UNCHANGED" ? rawStatus : undefined;
+      const automatable = rawAutomatable === "unchanged" ? undefined : rawAutomatable === "true";
+      const agentName = rawAgentName === "" ? undefined : rawAgentName === "none" ? null : rawAgentName;
 
       const payload = {
         title,

@@ -18,7 +18,7 @@ export const researchCompanyUrl = tool({
     let websiteContent = "";
     try {
       const scraped = await webScraper.execute(
-        { url, maxLength: 6000 },
+        { url, maxLength: 6000, deepCrawl: false },
         { toolCallId: "research-scrape", messages: [] }
       );
       if (scraped.success && scraped.content) {

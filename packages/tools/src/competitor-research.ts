@@ -16,8 +16,7 @@ export const competitorResearch = tool({
       .describe("List of competitor names or URLs to analyze"),
     focusAreas: z
       .array(z.string())
-      .optional()
-      .describe("Specific areas to focus the analysis on (pricing, features, etc.)"),
+      .describe("Specific areas to focus the analysis on (pricing, features, etc.). Pass an empty array if no specific focus."),
   }),
   execute: async ({ startupContext, competitors, focusAreas }) => {
     const model = getModel();
@@ -32,14 +31,14 @@ export const competitorResearch = tool({
       prompt:
         `Startup context: ${startupContext}\n\n` +
         `Competitors to analyze: ${competitors.join(", ")}\n` +
-        `${focusAreas ? `Focus areas: ${focusAreas.join(", ")}` : ""}\n\n` +
+        `${focusAreas.length > 0 ? `Focus areas: ${focusAreas.join(", ")}` : ""}\n\n` +
         `Provide a competitive analysis:`,
     });
 
     return {
       analysis: text.trim(),
       competitorsAnalyzed: competitors,
-      focusAreas: focusAreas || [],
+      focusAreas,
     };
   },
 });

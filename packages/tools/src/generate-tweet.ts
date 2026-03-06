@@ -14,8 +14,7 @@ export const generateTweet = tool({
       .describe("Full startup context: name, product, target users, website, company email"),
     tone: z
       .enum(["sharp", "matter-of-fact", "bold", "empathetic"])
-      .optional()
-      .describe("The voice of the tweet (default: sharp)"),
+      .describe("The voice of the tweet. Use 'sharp' for a punchy default."),
   }),
   execute: async ({ topic, startupContext, tone }) => {
     const model = getModel();
@@ -48,7 +47,7 @@ export const generateTweet = tool({
       prompt:
         `Startup context:\n${startupContext}\n\n` +
         `Angle/topic: ${topic}\n` +
-        `Tone: ${tone || "sharp"}\n\n` +
+        `Tone: ${tone}\n\n` +
         `Write one tweet:`,
     });
 
@@ -67,7 +66,7 @@ export const generateTweet = tool({
       tweet,
       characterCount: tweet.length,
       topic,
-      tone: tone || "sharp",
+      tone,
     };
   },
 });

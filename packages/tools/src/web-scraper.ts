@@ -19,14 +19,12 @@ export const webScraper = tool({
     url: z.string().url().describe("The URL to fetch"),
     maxLength: z
       .number()
-      .optional()
-      .describe("Maximum characters to return (default: 8000)"),
+      .describe("Maximum characters to return. Use 8000 for most pages."),
     deepCrawl: z
       .boolean()
-      .optional()
-      .describe("Enable deep crawling with JS rendering (uses Crawl4AI if available)"),
+      .describe("Enable deep crawling with JS rendering (uses Crawl4AI if available). Use false for simple pages."),
   }),
-  execute: async ({ url, maxLength = 8000, deepCrawl = false }) => {
+  execute: async ({ url, maxLength, deepCrawl }) => {
     const crawl4aiUrl = process.env.CRAWL4AI_API_URL;
 
     // Use Crawl4AI when available

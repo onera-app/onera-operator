@@ -41,8 +41,7 @@ export const webSearch = tool({
       .number()
       .min(1)
       .max(10)
-      .optional()
-      .describe("Maximum number of results to return (default: 5)"),
+      .describe("Maximum number of results to return. Use 5 for a standard search."),
     category: z
       .enum([
         "company",
@@ -52,11 +51,12 @@ export const webSearch = tool({
         "personal site",
         "financial report",
         "people",
+        "none",
       ])
-      .optional()
-      .describe("Optional category to focus the search on"),
+      .describe("Category to focus the search on. Use 'none' for general search."),
   }),
-  execute: async ({ query, maxResults = 5, category }) => {
+  execute: async ({ query, maxResults, category: rawCategory }) => {
+    const category = rawCategory === "none" ? undefined : rawCategory;
     const exaKey = process.env.EXA_API_KEY;
 
     // If Exa API key is available, use it

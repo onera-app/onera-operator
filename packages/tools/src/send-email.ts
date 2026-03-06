@@ -126,16 +126,17 @@ export const sendEmail = tool({
     body: z.string().describe("Email body content (plain text or markdown)"),
     from: z
       .string()
-      .email()
-      .optional()
       .describe(
         "Sender email address. Use the Company Email from the startup context (e.g. companyname@onera.app). " +
-        "Falls back to operator@onera.app if not provided."
+        "Use an empty string to default to operator@onera.app."
       ),
-    replyTo: z.string().email().optional().describe("Reply-to address"),
-    html: z.string().optional().describe("Optional HTML body (overrides plain text body)"),
+    replyTo: z.string().describe("Reply-to email address. Use an empty string if not needed."),
+    html: z.string().describe("HTML body content. Use an empty string to auto-generate from plain text body."),
   }),
-  execute: async ({ to, subject, body, from, replyTo, html }) => {
+  execute: async ({ to, subject, body, from: rawFrom, replyTo: rawReplyTo, html: rawHtml }) => {
+    const from = rawFrom.length > 0 ? rawFrom : undefined;
+    const replyTo = rawReplyTo.length > 0 ? rawReplyTo : undefined;
+    const html = rawHtml.length > 0 ? rawHtml : undefined;
     // ── Quality Gate ──────────────────────────────────────────────────
     const validation = validateEmail(subject, body, to);
 

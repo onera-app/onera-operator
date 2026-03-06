@@ -18,13 +18,12 @@ export const findLeads = tool({
       .number()
       .min(1)
       .max(20)
-      .optional()
-      .describe("Number of lead profiles to generate (default: 5)"),
-    industry: z.string().optional().describe("Specific industry to target"),
+      .describe("Number of lead profiles to generate. Use 5 for a standard batch."),
+    industry: z.string().describe("Specific industry to target. Use an empty string for no specific industry filter."),
   }),
   execute: async ({ startupContext, targetAudience, count, industry }) => {
     const model = getModel();
-    const leadCount = count || 5;
+    const leadCount = count;
     const { text } = await generateText({
       model,
       system:
@@ -36,7 +35,7 @@ export const findLeads = tool({
       prompt:
         `Startup context: ${startupContext}\n\n` +
         `Target audience: ${targetAudience}\n` +
-        `${industry ? `Industry focus: ${industry}` : ""}\n\n` +
+        `${industry.length > 0 ? `Industry focus: ${industry}` : ""}\n\n` +
         `Generate ${leadCount} potential lead profiles:`,
     });
 
@@ -44,7 +43,7 @@ export const findLeads = tool({
       leads: text.trim(),
       count: leadCount,
       targetAudience,
-      industry: industry || "general",
+      industry: industry.length > 0 ? industry : "general",
     };
   },
 });

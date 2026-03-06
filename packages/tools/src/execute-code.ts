@@ -19,21 +19,17 @@ export const executeCode = tool({
     code: z.string().describe("The code to execute"),
     language: z
       .enum(["python", "javascript", "bash"])
-      .default("python")
-      .describe("Programming language to run the code in"),
+      .describe("Programming language to run the code in. Use 'python' if unsure."),
     timeout: z
       .number()
       .min(5)
       .max(300)
-      .optional()
-      .default(60)
-      .describe("Execution timeout in seconds (default: 60, max: 300)"),
+      .describe("Execution timeout in seconds (max: 300). Use 60 for most cases."),
     packages: z
       .array(z.string())
-      .optional()
-      .describe("Additional Python packages to install before running (e.g. ['pandas', 'requests'])"),
+      .describe("Additional Python packages to install before running (e.g. ['pandas', 'requests']). Pass an empty array if none needed."),
   }),
-  execute: async ({ code, language = "python", timeout = 60, packages = [] }) => {
+  execute: async ({ code, language, timeout, packages }) => {
     const apiKey = process.env.E2B_API_KEY;
 
     if (!apiKey) {

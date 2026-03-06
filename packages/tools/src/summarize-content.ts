@@ -11,12 +11,10 @@ export const summarizeContent = tool({
     content: z.string().describe("The content to summarize"),
     maxLength: z
       .enum(["short", "medium", "long"])
-      .optional()
-      .describe("Desired summary length (default: medium)"),
+      .describe("Desired summary length. Use 'medium' for a balanced summary."),
     focusOn: z
       .string()
-      .optional()
-      .describe("Specific aspect to focus the summary on"),
+      .describe("Specific aspect to focus the summary on. Use an empty string for a general summary."),
   }),
   execute: async ({ content, maxLength, focusOn }) => {
     const model = getModel();
@@ -35,7 +33,7 @@ export const summarizeContent = tool({
         "Include actionable takeaways when relevant.",
       prompt:
         `Summarize the following content in ${lengthGuide}.\n` +
-        `${focusOn ? `Focus particularly on: ${focusOn}\n` : ""}\n` +
+        `${focusOn.length > 0 ? `Focus particularly on: ${focusOn}\n` : ""}\n` +
         `Content:\n${content}`,
     });
 

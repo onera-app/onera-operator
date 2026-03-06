@@ -14,8 +14,7 @@ export const generateEmail = tool({
     recipientCompany: z.string().describe("Company of the recipient"),
     recipientCompanyUrl: z
       .string()
-      .optional()
-      .describe("Website URL of the recipient's company, if known"),
+      .describe("Website URL of the recipient's company. Use an empty string if unknown."),
     startupContext: z
       .string()
       .describe(
@@ -66,7 +65,7 @@ export const generateEmail = tool({
         prompt:
           `Startup context: ${startupContext}\n\n` +
           `Recipient: ${recipientName}, ${recipientRole} at ${recipientCompany}` +
-          `${recipientCompanyUrl ? ` (${recipientCompanyUrl})` : ""}\n` +
+          `${recipientCompanyUrl.length > 0 ? ` (${recipientCompanyUrl})` : ""}\n` +
           `Purpose: ${purpose}\n\n` +
           `Write the outreach email:`,
       });
