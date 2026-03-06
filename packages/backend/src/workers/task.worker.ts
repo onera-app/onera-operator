@@ -47,23 +47,22 @@ export function startTaskWorker(): Worker<TaskExecutionJob> {
       });
 
       // Tweet rate limit: 3 per day per project
+      // Reverts to PENDING so the next scheduler cycle retries automatically.
       if (agentName === "twitter") {
         const allowed = await canPostTweet(projectId);
         if (!allowed) {
           console.log(
-            `[task-worker] Tweet limit reached for project ${projectId}, skipping "${taskTitle}"`
+            `[task-worker] Tweet limit reached for project ${projectId}, deferring "${taskTitle}"`
           );
-          await updateTaskStatus(
-            taskId,
-            "FAILED",
-            JSON.stringify({ error: "Daily tweet limit reached (3/day). Will retry tomorrow." })
-          );
+          await updateTaskStatus(taskId, "PENDING");
           await upsertAgentStatus(agentName, displayName, { status: "idle" });
           return;
         }
       }
 
-      // Check and deduct credits — only on first attempt to avoid double-charging on retry
+      // Check and deduct credits — only on first attempt to avoid double-charging on retry.
+      // If the user lacks credits, revert the task to PENDING so the next
+      // scheduler cycle picks it up after they top up.
       if (job.attemptsMade === 0) {
         const userId = await getProjectOwner(projectId);
         const creditCost = ACTION_CREDITS[agentName] || await getTaskCredits(taskId);
@@ -76,13 +75,9 @@ export function startTaskWorker(): Worker<TaskExecutionJob> {
           );
           if (!result.success) {
             console.log(
-              `[task-worker] Insufficient credits (${result.remainingCredits}) for task "${taskTitle}" (needs ${creditCost})`
+              `[task-worker] Insufficient credits (${result.remainingCredits}) for task "${taskTitle}" (needs ${creditCost}), deferring to PENDING`
             );
-            await updateTaskStatus(
-              taskId,
-              "FAILED",
-              JSON.stringify({ error: "Insufficient credits. Please top up or wait for your next subscription renewal." })
-            );
+            await updateTaskStatus(taskId, "PENDING");
             await upsertAgentStatus(agentName, displayName, { status: "idle" });
             return;
           }
