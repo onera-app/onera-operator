@@ -15,11 +15,10 @@ export const scheduleTweet = tool({
   parameters: z.object({
     tweet: z.string().max(280).describe("The tweet text to queue (max 280 characters)"),
     projectId: z.string().describe("The project ID this tweet belongs to"),
-    tone: z.string().optional().describe("The tone used to generate this tweet"),
+    tone: z.string().describe("The tone used to generate this tweet (e.g. sharp, bold, empathetic). Use 'sharp' as default."),
     scheduledTime: z
       .string()
-      .optional()
-      .describe("ISO datetime string (ignored, kept for backward compat)"),
+      .describe("ISO datetime string for scheduling. Use an empty string for immediate queueing."),
   }),
   execute: async ({ tweet, projectId, tone }) => {
     const queued = await prisma.tweetQueue.create({
