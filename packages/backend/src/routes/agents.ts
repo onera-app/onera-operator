@@ -49,8 +49,8 @@ export async function agentRoutes(app: FastifyInstance) {
         }
       }
 
-      // Recent log entries
-      for (const log of logs.slice(0, 8)) {
+      // Recent log entries (reverse so newest appears at the bottom)
+      for (const log of logs.slice(0, 8).reverse()) {
         const taskTitle =
           (log as { task?: { title?: string } }).task?.title || "task";
         const timeAgo = getTimeAgo(log.createdAt);
