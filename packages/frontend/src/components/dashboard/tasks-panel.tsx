@@ -20,6 +20,51 @@ const CATEGORY_COLORS: Record<string, string> = {
   PRODUCT: "text-blue-600 border-blue-500/30 bg-blue-500/5",
 };
 
+interface OutreachEmail {
+  subject: string;
+  body: string;
+  recipientName: string;
+  recipientCompany: string;
+  to: string;
+  sendStatus: "sent" | "queued" | "rejected" | "failed" | "unknown";
+}
+
+function parseOutreachEmails(resultJson: string): OutreachEmail[] | null {
+  try {
+    const parsed = JSON.parse(resultJson);
+    const toolResults: { tool: string; result: Record<string, unknown> }[] =
+      parsed?.toolResults;
+    if (!Array.isArray(toolResults)) return null;
+
+    const generates = toolResults.filter((r) => r.tool === "generateEmail");
+    const sends = toolResults.filter((r) => r.tool === "sendEmail");
+
+    if (generates.length === 0) return null;
+
+    return generates.map((gen, i) => {
+      const g = gen.result;
+      const subject = String(g?.subject ?? "No subject");
+      const send =
+        sends.find((s) => String(s.result?.subject) === subject) ?? sends[i];
+      const s = send?.result;
+      return {
+        subject,
+        body: String(g?.body ?? ""),
+        recipientName: String(g?.recipientName ?? ""),
+        recipientCompany: String(g?.recipientCompany ?? ""),
+        to: String(s?.to ?? ""),
+        sendStatus: (["sent", "queued", "rejected", "failed"].includes(
+          String(s?.status)
+        )
+          ? String(s?.status)
+          : "unknown") as OutreachEmail["sendStatus"],
+      };
+    });
+  } catch {
+    return null;
+  }
+}
+
 function useElapsedTime(startIso: string | null, isRunning: boolean): string {
   const [elapsed, setElapsed] = useState("");
 
@@ -41,6 +86,75 @@ function useElapsedTime(startIso: string | null, isRunning: boolean): string {
   }, [startIso, isRunning]);
 
   return elapsed;
+}
+
+function OutreachEmailList({ emails }: { emails: OutreachEmail[] }) {
+  const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
+
+  const statusStyle: Record<OutreachEmail["sendStatus"], string> = {
+    sent: "text-green-600",
+    queued: "text-yellow-600",
+    rejected: "text-red-600",
+    failed: "text-red-600",
+    unknown: "text-muted-foreground",
+  };
+
+  return (
+    <div className="space-y-1">
+      <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 font-semibold">
+        Emails ({emails.length})
+      </p>
+      {emails.map((email, i) => {
+        const isExpanded = expandedIndex === i;
+        return (
+          <div key={i} className="border border-dashed border-border/50">
+            <button
+              type="button"
+              className="flex w-full items-center gap-2 px-2 py-1.5 text-left cursor-pointer hover:bg-primary/5 transition-colors"
+              onClick={(e) => {
+                e.stopPropagation();
+                setExpandedIndex(isExpanded ? null : i);
+              }}
+            >
+              <span className="text-[10px] text-muted-foreground/50 shrink-0">
+                {isExpanded ? "▼" : "▶"}
+              </span>
+              <span className="text-[11px] font-medium text-foreground truncate flex-1">
+                {email.subject}
+              </span>
+              {email.to && (
+                <span className="text-[10px] text-muted-foreground truncate shrink-0 max-w-[120px]">
+                  {email.to}
+                </span>
+              )}
+              <span
+                className={`text-[9px] font-mono uppercase shrink-0 ${statusStyle[email.sendStatus]}`}
+              >
+                {email.sendStatus}
+              </span>
+            </button>
+            {isExpanded && (
+              <div className="px-3 pb-2 space-y-1.5">
+                {(email.recipientName || email.recipientCompany) && (
+                  <p className="text-[10px] text-muted-foreground">
+                    To: {email.recipientName}
+                    {email.recipientCompany
+                      ? `, ${email.recipientCompany}`
+                      : ""}
+                  </p>
+                )}
+                <div className="border-t border-dashed border-border/30 pt-1.5">
+                  <p className="text-[11px] leading-relaxed text-foreground/80 whitespace-pre-line">
+                    {email.body}
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
 }
 
 interface TasksPanelProps {
@@ -274,6 +388,11 @@ function briefDescription(desc: string): string {
 
 function ExpandedDetail({ task }: { task: Task }) {
   const parsedResult = parseResult(task.result);
+  const outreachEmails =
+    task.category === "OUTREACH" && task.result
+      ? parseOutreachEmails(task.result)
+      : null;
+
   return (
     <div className="mt-2 border-t border-dashed border-border/50 pt-2 space-y-2">
       {/* Full description (only when expanded, for tasks with long prompts) */}
@@ -287,7 +406,9 @@ function ExpandedDetail({ task }: { task: Task }) {
           </p>
         </div>
       )}
-      {parsedResult ? (
+      {outreachEmails ? (
+        <OutreachEmailList emails={outreachEmails} />
+      ) : parsedResult ? (
         <div>
           <p className="text-[10px] uppercase tracking-wider text-muted-foreground/60 mb-0.5">
             Result
