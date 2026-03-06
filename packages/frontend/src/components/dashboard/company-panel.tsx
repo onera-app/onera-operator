@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { api, type TaskMetrics, type AgentStatus, type Project } from "@/lib/api-client";
+import { api, type TaskMetrics, type AgentStatus, type Project, type EmailLogEntry } from "@/lib/api-client";
 import { formatRelativeTime } from "@/lib/utils";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { BillingSection } from "./billing-section";
@@ -29,20 +29,23 @@ export function CompanyPanel({
   const [metrics, setMetrics] = useState<TaskMetrics | null>(null);
   const [agents, setAgents] = useState<AgentStatus[]>([]);
   const [project, setProject] = useState<Project | null>(null);
+  const [emails, setEmails] = useState<EmailLogEntry[]>([]);
   const [triggering, setTriggering] = useState(false);
   const [triggeringAgent, setTriggeringAgent] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
     if (!projectId) return;
     try {
-      const [metricsData, agentsData, projectData] = await Promise.all([
+      const [metricsData, agentsData, projectData, emailData] = await Promise.all([
         api.tasks.metrics(projectId),
         api.agents.list(),
         api.projects.get(projectId),
+        api.projects.emails(projectId, { limit: 20 }),
       ]);
       setMetrics(metricsData);
       setAgents(agentsData);
       setProject(projectData);
+      setEmails(emailData);
       setLastUpdated(new Date());
     } catch {
       // ignore
@@ -343,6 +346,53 @@ export function CompanyPanel({
                 </span>
               </div>
             )}
+          </div>
+        </CollapsibleSection>
+      )}
+
+      {/* Email log */}
+      {emails.length > 0 && (
+        <CollapsibleSection
+          title="Email Log"
+          badge={
+            <span className="text-xs text-muted-foreground font-mono">
+              {emails.filter((e) => e.status === "SENT").length} sent
+            </span>
+          }
+          defaultOpen={false}
+        >
+          <div className="border border-dashed border-border divide-y divide-dashed divide-border max-h-[300px] overflow-y-auto scrollbar-thin">
+            {emails.map((email) => (
+              <div key={email.id} className="px-3 py-2.5 space-y-1">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[11px] font-medium text-foreground truncate">
+                    {email.toEmail}
+                  </span>
+                  <span
+                    className={`text-[9px] uppercase tracking-wider shrink-0 ${
+                      email.status === "SENT"
+                        ? "text-green-600"
+                        : email.status === "BLOCKED"
+                          ? "text-amber-600"
+                          : "text-destructive"
+                    }`}
+                  >
+                    {email.status}
+                  </span>
+                </div>
+                <p className="text-[11px] text-muted-foreground truncate">
+                  {email.subject}
+                </p>
+                <p className="text-[10px] text-muted-foreground/60">
+                  {formatRelativeTime(email.sentAt)}
+                  {email.errorMessage && (
+                    <span className="text-destructive ml-1.5">
+                      {email.errorMessage.substring(0, 80)}
+                    </span>
+                  )}
+                </p>
+              </div>
+            ))}
           </div>
         </CollapsibleSection>
       )}

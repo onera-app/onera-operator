@@ -79,6 +79,7 @@ model Project {
   tasks      Task[]
   reports    DailyReport[]
   tweetQueue TweetQueue[]
+  emailLogs  EmailLog[]
 
   @@index([userId])
   @@map("projects")
@@ -173,6 +174,39 @@ model TweetQueue {
   @@index([status])
   @@index([projectId])
   @@map("tweet_queue")
+}
+
+model EmailLog {
+  id             String         @id @default(cuid())
+  projectId      String         @map("project_id")
+  project        Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  azureMessageId String?        @map("azure_message_id")
+  fromEmail      String         @map("from_email")
+  toEmail        String         @map("to_email")
+  replyTo        String?        @map("reply_to")
+  subject        String
+  body           String
+  status         EmailLogStatus @default(SENT)
+  errorMessage   String?        @map("error_message")
+  type           EmailLogType   @default(OUTREACH)
+  sentAt         DateTime       @default(now()) @map("sent_at")
+
+  @@index([projectId])
+  @@index([status])
+  @@index([sentAt])
+  @@map("email_logs")
+}
+
+enum EmailLogStatus {
+  SENT
+  FAILED
+  BLOCKED
+}
+
+enum EmailLogType {
+  OUTREACH
+  DIGEST
+  NOTIFICATION
 }
 
 enum TaskCategory {

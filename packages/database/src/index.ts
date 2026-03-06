@@ -10,6 +10,7 @@ export type {
   AgentStatus,
   DailyReport,
   TweetQueue,
+  EmailLog,
 } from "@prisma/client";
 
 export {
@@ -17,4 +18,6 @@ export {
   TaskPriority,
   TaskStatus,
   TweetQueueStatus,
+  EmailLogStatus,
+  EmailLogType,
 } from "@prisma/client";

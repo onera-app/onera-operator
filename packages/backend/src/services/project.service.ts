@@ -120,7 +120,10 @@ export async function buildProjectContext(
     throw new Error(`Project not found: ${projectId}`);
   }
 
-  const parts = [`Startup Name: ${project.name}`];
+  const parts = [
+    `Project ID: ${project.id}`,
+    `Startup Name: ${project.name}`,
+  ];
 
   if (project.description) parts.push(`Description: ${project.description}`);
   if (project.product) parts.push(`Product: ${project.product}`);

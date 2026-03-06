@@ -1,6 +1,45 @@
 import { tool } from "ai";
 import { z } from "zod";
 import { EmailClient } from "@azure/communication-email";
+import { prisma } from "@onera/database";
+
+// ---------------------------------------------------------------------------
+// Email logging — persists every send attempt to the database for audit
+// ---------------------------------------------------------------------------
+
+async function logEmail(opts: {
+  projectId?: string;
+  fromEmail: string;
+  toEmail: string;
+  replyTo?: string;
+  subject: string;
+  body: string;
+  status: "SENT" | "FAILED" | "BLOCKED";
+  azureMessageId?: string;
+  errorMessage?: string;
+  type?: "OUTREACH" | "DIGEST" | "NOTIFICATION";
+}) {
+  if (!opts.projectId) return; // Can't log without a project
+  try {
+    await prisma.emailLog.create({
+      data: {
+        projectId: opts.projectId,
+        fromEmail: opts.fromEmail,
+        toEmail: opts.toEmail,
+        replyTo: opts.replyTo,
+        subject: opts.subject,
+        body: opts.body,
+        status: opts.status,
+        azureMessageId: opts.azureMessageId,
+        errorMessage: opts.errorMessage,
+        type: opts.type || "OUTREACH",
+      },
+    });
+  } catch (err) {
+    // Don't let logging failures break email sending
+    console.warn("[sendEmail] Failed to log email to DB:", err instanceof Error ? err.message : err);
+  }
+}
 
 /**
  * Converts plain-text email body into minimal HTML.
@@ -132,11 +171,13 @@ export const sendEmail = tool({
       ),
     replyTo: z.string().describe("Reply-to email address. Use an empty string if not needed."),
     html: z.string().describe("HTML body content. Use an empty string to auto-generate from plain text body."),
+    projectId: z.string().describe("The project ID for tracking. Extract from startup context or use an empty string."),
   }),
-  execute: async ({ to, subject, body, from: rawFrom, replyTo: rawReplyTo, html: rawHtml }) => {
+  execute: async ({ to, subject, body, from: rawFrom, replyTo: rawReplyTo, html: rawHtml, projectId: rawProjectId }) => {
     const from = rawFrom.length > 0 ? rawFrom : undefined;
     const replyTo = rawReplyTo.length > 0 ? rawReplyTo : undefined;
     const html = rawHtml.length > 0 ? rawHtml : undefined;
+    const projectId = rawProjectId.length > 0 ? rawProjectId : undefined;
     // ── Quality Gate ──────────────────────────────────────────────────
     const validation = validateEmail(subject, body, to);
 
@@ -145,6 +186,16 @@ export const sendEmail = tool({
         `[sendEmail] BLOCKED — email to ${to} failed quality checks:\n` +
         validation.failures.map((f) => `  - ${f}`).join("\n")
       );
+      await logEmail({
+        projectId,
+        fromEmail: from || "operator@onera.app",
+        toEmail: to,
+        replyTo,
+        subject,
+        body,
+        status: "BLOCKED",
+        errorMessage: validation.failures.join("; "),
+      });
       return {
         status: "rejected",
         to,
@@ -199,6 +250,16 @@ export const sendEmail = tool({
 
       if (result.status === "Succeeded") {
         console.log(`[sendEmail] Email sent to ${to} (id: ${result.id})`);
+        await logEmail({
+          projectId,
+          fromEmail: senderAddress,
+          toEmail: to,
+          replyTo,
+          subject,
+          body,
+          status: "SENT",
+          azureMessageId: result.id,
+        });
         return {
           status: "sent",
           to,
@@ -207,17 +268,38 @@ export const sendEmail = tool({
           bodyPreview: body.substring(0, 100) + (body.length > 100 ? "..." : ""),
         };
       } else {
+        const errorMsg = result.error?.message || `Send status: ${result.status}`;
         console.error(`[sendEmail] Azure ECS error: status=${result.status}`, result.error);
+        await logEmail({
+          projectId,
+          fromEmail: senderAddress,
+          toEmail: to,
+          replyTo,
+          subject,
+          body,
+          status: "FAILED",
+          errorMessage: errorMsg,
+        });
         return {
           status: "failed",
           to,
           subject,
-          error: result.error?.message || `Send status: ${result.status}`,
+          error: errorMsg,
         };
       }
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : String(err);
       console.error("[sendEmail] Failed to send email:", errMsg);
+      await logEmail({
+        projectId,
+        fromEmail: senderAddress,
+        toEmail: to,
+        replyTo,
+        subject,
+        body,
+        status: "FAILED",
+        errorMessage: errMsg,
+      });
       return {
         status: "failed",
         to,

@@ -57,7 +57,8 @@ export function streamChatAgent(
       "- ALWAYS set the 'from' parameter in sendEmail to the Company Email from the startup context " +
       "(e.g. companyname@onera.app). Every email must come from the company's own address.\n" +
       "- ALWAYS set the 'replyTo' parameter in sendEmail to the Founder Email from the startup context. " +
-      "This ensures replies go to the founder's real inbox, not the send-only company address.\n\n" +
+      "This ensures replies go to the founder's real inbox, not the send-only company address.\n" +
+      "- ALWAYS set the 'projectId' parameter in sendEmail to the Project ID from the startup context.\n\n" +
       "## Email Review Process (MANDATORY)\n" +
       "Before calling sendEmail, you MUST show the user the full email (subject + body) and ask for confirmation. " +
       "Do NOT send without the user saying yes/confirm/send/go ahead. " +

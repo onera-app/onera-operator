@@ -57,6 +57,13 @@ export const api = {
       }),
     delete: (id: string) =>
       fetchApi<void>(`/api/projects/${id}`, { method: "DELETE" }),
+    emails: (projectId: string, opts?: { status?: string; limit?: number }) => {
+      const params = new URLSearchParams();
+      if (opts?.status) params.set("status", opts.status);
+      if (opts?.limit) params.set("limit", String(opts.limit));
+      const query = params.toString();
+      return fetchApi<EmailLogEntry[]>(`/api/projects/${projectId}/emails${query ? `?${query}` : ""}`);
+    },
   },
 
   tasks: {
@@ -250,6 +257,21 @@ export interface TaskMetrics {
   completedToday: number;
   tweetsPostedToday: number;
   emailsSentToday: number;
+}
+
+export interface EmailLogEntry {
+  id: string;
+  projectId: string;
+  azureMessageId: string | null;
+  fromEmail: string;
+  toEmail: string;
+  replyTo: string | null;
+  subject: string;
+  body: string;
+  status: "SENT" | "FAILED" | "BLOCKED";
+  errorMessage: string | null;
+  type: "OUTREACH" | "DIGEST" | "NOTIFICATION";
+  sentAt: string;
 }
 
 export interface AgentStatus {

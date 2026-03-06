@@ -39,7 +39,8 @@ export async function runOutreachAgent(input: OutreachAgentInput) {
       "and have a clear CTA? If not, call generateEmail again.\n" +
       "   c. Immediately call sendEmail with the generated subject and body. " +
       "ALWAYS set 'from' to the Company Email from the startup context (e.g. companyname@onera.app). " +
-      "ALWAYS set 'replyTo' to the Founder Email from the startup context.\n" +
+      "ALWAYS set 'replyTo' to the Founder Email from the startup context. " +
+      "ALWAYS set 'projectId' to the Project ID from the startup context.\n" +
       "   d. If sendEmail returns 'rejected', fix the issues and retry once.\n" +
       "3. After sending all emails, use notifyFounder to update the founder.\n\n" +
       "IMPORTANT: You MUST call sendEmail after each generateEmail. Do NOT batch all generates first. " +

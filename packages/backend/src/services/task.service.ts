@@ -171,12 +171,11 @@ export async function getTaskMetrics(projectId: string) {
         postedAt: { gte: since24h },
       },
     }),
-    prisma.task.count({
+    prisma.emailLog.count({
       where: {
         projectId,
-        agentName: "outreach",
-        status: TaskStatus.COMPLETED,
-        completedAt: { gte: since24h },
+        status: "SENT",
+        sentAt: { gte: since24h },
       },
     }),
   ]);

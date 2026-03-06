@@ -9,6 +9,7 @@ import {
 import { researchCompanyUrl } from "@onera/tools";
 import { getSchedulerQueue } from "../queue/scheduler.queue.js";
 import { provisionCompanyEmail, sendWelcomeEmail } from "../services/email.service.js";
+import { prisma } from "@onera/database";
 
 export async function projectRoutes(app: FastifyInstance) {
   // List all projects for the authenticated user
@@ -204,4 +205,34 @@ export async function projectRoutes(app: FastifyInstance) {
       }
     }
   );
+
+  // List email logs for a project
+  app.get<{
+    Params: { id: string };
+    Querystring: { status?: string; limit?: string };
+  }>("/api/projects/:id/emails", async (request, reply) => {
+    const { id: projectId } = request.params;
+    const userId = request.authUser!.id;
+    const statusFilter = request.query.status;
+    const limit = Math.min(parseInt(request.query.limit || "50", 10), 100);
+
+    // Verify project belongs to user
+    const project = await prisma.project.findFirst({
+      where: { id: projectId, userId },
+    });
+    if (!project) {
+      return reply.code(404).send({ error: "Project not found" });
+    }
+
+    const emails = await prisma.emailLog.findMany({
+      where: {
+        projectId,
+        ...(statusFilter && { status: statusFilter as "SENT" | "FAILED" | "BLOCKED" }),
+      },
+      orderBy: { sentAt: "desc" },
+      take: limit,
+    });
+
+    return reply.send(emails);
+  });
 }
