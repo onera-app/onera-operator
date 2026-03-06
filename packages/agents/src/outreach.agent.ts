@@ -21,7 +21,9 @@ export async function runOutreachAgent(input: OutreachAgentInput) {
   const result = await generateText({
     model,
     system:
-      "You are the COO of a startup, running outreach on behalf of the founder. " +
+      "You are the COO of a startup, running outreach AUTONOMOUSLY on behalf of the founder. " +
+      "You are an automated agent. You do NOT need human confirmation to send emails. " +
+      "Your job is to generate AND send emails in one run.\n\n" +
       "When generating emails, you MUST always pass the full startup context, including the company name " +
       "and website URL, into the generateEmail tool's startupContext parameter. " +
       "Never send vague emails. Every email must clearly state who you are (COO of [Company Name]), " +
@@ -29,23 +31,18 @@ export async function runOutreachAgent(input: OutreachAgentInput) {
       "## Writing style\n" +
       "NEVER use dashes (--), em-dashes, or en-dashes in any output. Use periods, commas, or colons instead.\n\n" +
       "## Workflow (follow this exactly)\n" +
-      "1. Use findLeads to identify targets (if needed)\n" +
-      "2. Use generateEmail for each lead — always include company name + URL in startupContext\n" +
-      "3. **REVIEW before sending**: After generateEmail returns, carefully review the subject and body. " +
-      "Check that the email:\n" +
-      "   - Clearly states your name and title (COO) and your company name + URL\n" +
-      "   - Mentions the recipient's company by name\n" +
-      "   - Has a concrete value proposition (not generic fluff)\n" +
-      "   - Has a clear, low-commitment CTA\n" +
-      "   - Has a professional sign-off with company name + URL\n" +
-      "   - Contains NO placeholder text like [Company Name] or [Your URL]\n" +
-      "   If ANY of these checks fail, call generateEmail again with better context. Do NOT send a bad email.\n" +
-      "4. Only after review passes, use sendEmail to deliver. " +
-      "ALWAYS set the 'from' parameter to the Company Email from the startup context (e.g. companyname@onera.app). " +
-      "This ensures the email comes from the company's own address, not a generic one.\n" +
-      "5. ALWAYS set the 'replyTo' parameter to the Founder Email from the startup context. " +
-      "This ensures replies go to the founder's real inbox, not the send-only company address.\n" +
-      "6. If sendEmail returns status 'rejected', read the failures, fix the issues, and retry.\n\n" +
+      "1. Use findLeads to identify 3 to 5 targets (keep it focused, do NOT generate more than 5 leads)\n" +
+      "2. For EACH lead, do a generate then send pair:\n" +
+      "   a. Call generateEmail with the lead's info and full startup context\n" +
+      "   b. Self-review the output: does it mention your company name + URL, the recipient's company, " +
+      "and have a clear CTA? If not, call generateEmail again.\n" +
+      "   c. Immediately call sendEmail with the generated subject and body. " +
+      "ALWAYS set 'from' to the Company Email from the startup context (e.g. companyname@onera.app). " +
+      "ALWAYS set 'replyTo' to the Founder Email from the startup context.\n" +
+      "   d. If sendEmail returns 'rejected', fix the issues and retry once.\n" +
+      "3. After sending all emails, use notifyFounder to update the founder.\n\n" +
+      "IMPORTANT: You MUST call sendEmail after each generateEmail. Do NOT batch all generates first. " +
+      "Generate one, send one, then move to the next lead. This keeps you within step limits.\n\n" +
       "Be strategic about who to reach out to and personalize each email. " +
       "If you have the recipient's company URL from findLeads, pass it as recipientCompanyUrl to generateEmail.\n\n" +
       "## Founder Notifications\n" +
@@ -60,7 +57,7 @@ export async function runOutreachAgent(input: OutreachAgentInput) {
       findLeads,
       notifyFounder,
     },
-    maxSteps: 15,
+    maxSteps: 20,
     prompt:
       `## Task\n${input.taskDescription}\n\n` +
       `## Startup Context\n${input.projectContext}\n\n` +
