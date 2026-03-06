@@ -35,7 +35,7 @@ export default function LandingPage() {
         <div className="flex items-center gap-4">
           <Link
             href="/live"
-            className="text-xs text-muted-foreground hover:text-primary transition-colors uppercase tracking-wider"
+            className="text-xs text-muted-foreground hover:text-primary transition-colors uppercase tracking-wider font-mono"
           >
             Live
           </Link>
@@ -43,7 +43,7 @@ export default function LandingPage() {
             href="https://github.com/anomalyco/onera-operator"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-xs text-muted-foreground hover:text-primary transition-colors uppercase tracking-wider"
+            className="text-xs text-muted-foreground hover:text-primary transition-colors uppercase tracking-wider font-mono"
           >
             GitHub
           </Link>
@@ -59,7 +59,7 @@ export default function LandingPage() {
       <main className="relative z-10 flex flex-1 flex-col items-center justify-center overflow-y-auto px-6 py-16 scrollbar-thin">
         <div className="mx-auto max-w-3xl">
           {/* Blueprint tag */}
-          <div className="inline-flex items-center gap-2 border-2 border-primary bg-primary text-primary-foreground px-3 py-1 text-[10px] uppercase tracking-[0.2em] font-bold mb-8">
+          <div className="inline-flex items-center gap-2 border-2 border-primary bg-primary text-primary-foreground px-3 py-1 text-[10px] uppercase tracking-[0.2em] font-bold font-mono mb-8">
             <span className="h-1.5 w-1.5 rounded-full bg-primary-foreground animate-pulse" />
             Open Source AI Operator
           </div>
@@ -73,39 +73,44 @@ export default function LandingPage() {
           </h1>
 
           <p className="mt-8 text-sm leading-relaxed text-muted-foreground max-w-xl">
-            Drop in your company URL. Onera Operator researches your product,
-            plans growth tasks, writes outreach emails, posts tweets, runs
-            competitor analysis, and sends you a daily report. Every 4 hours,
-            around the clock, with zero manual input.
+            Give it your company URL. Every 4 hours, it plans growth tasks,
+            finds leads, sends cold emails, posts to Twitter, and files a
+            daily report &mdash; all without you touching a thing.
           </p>
 
           {/* Live stats strip */}
           {liveData && liveData.hasRealData && (
-            <div className="mt-8 flex items-center gap-6 text-xs">
+            <div className="mt-8 flex items-center gap-6 text-xs font-mono">
               <div className="flex items-center gap-1.5">
                 <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
                 <span className="text-muted-foreground">
                   <span className="font-bold text-primary tabular-nums">
-                    {liveData.stats.totalTasksCompleted}
+                    {liveData.stats.totalTasksCompleted.toLocaleString()}
                   </span>{" "}
                   tasks completed
                 </span>
               </div>
-              <div className="text-muted-foreground">
-                <span className="font-bold text-primary tabular-nums">
-                  {liveData.agents.filter((a) => a.status === "running").length || liveData.agents.length}
-                </span>{" "}
-                agents{" "}
-                {liveData.agents.some((a) => a.status === "running")
-                  ? "active"
-                  : "online"}
-              </div>
+              {liveData.agents.filter((a) => a.status === "running").length > 0 ? (
+                <div className="text-muted-foreground">
+                  <span className="font-bold text-primary tabular-nums">
+                    {liveData.agents.filter((a) => a.status === "running").length}
+                  </span>{" "}
+                  agent{liveData.agents.filter((a) => a.status === "running").length > 1 ? "s" : ""} running
+                </div>
+              ) : (
+                <div className="text-muted-foreground">
+                  <span className="font-bold text-primary tabular-nums">
+                    {liveData.agents.length}
+                  </span>{" "}
+                  agents online
+                </div>
+              )}
               {liveData.stats.tasksLast24h > 0 && (
                 <div className="text-muted-foreground">
                   <span className="font-bold text-primary tabular-nums">
                     {liveData.stats.tasksLast24h}
                   </span>{" "}
-                  in last 24h
+                  in last 24 h
                 </div>
               )}
             </div>
@@ -114,27 +119,27 @@ export default function LandingPage() {
           {/* Feature grid */}
           <div className="mt-10 grid grid-cols-3 gap-4 max-w-xl">
             <div className="border border-dashed border-border p-3">
-              <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-mono mb-1">
                 Outreach
               </p>
               <p className="text-xs font-semibold text-primary">
-                Cold emails, lead discovery, Twitter posts
+                Finds leads by role, writes personalized cold emails, posts tweets on schedule
               </p>
             </div>
             <div className="border border-dashed border-border p-3">
-              <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">
-                Intelligence
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-mono mb-1">
+                Research
               </p>
               <p className="text-xs font-semibold text-primary">
-                Deep web research, competitor tracking
+                Crawls competitor sites, analyzes product positioning, surfaces market gaps
               </p>
             </div>
             <div className="border border-dashed border-border p-3">
-              <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">
-                Operations
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-mono mb-1">
+                Ops
               </p>
               <p className="text-xs font-semibold text-primary">
-                Daily reports, task planning, code execution
+                Plans tasks every 4 h, executes autonomously, delivers daily summary reports
               </p>
             </div>
           </div>
@@ -150,7 +155,7 @@ export default function LandingPage() {
               Watch it live &rsaquo;
             </Link>
           </div>
-          <p className="mt-3 text-[10px] text-muted-foreground">
+          <p className="mt-3 text-[10px] text-muted-foreground font-mono">
             No credit card &middot; 100 free credits
           </p>
         </div>
@@ -158,17 +163,24 @@ export default function LandingPage() {
 
       {/* Footer */}
       <footer className="relative z-10 shrink-0 border-t-2 border-dashed border-border py-4 px-8">
-        <div className="flex items-center justify-between text-[10px] text-muted-foreground uppercase tracking-wider">
+        <div className="flex items-center justify-between text-[10px] text-muted-foreground uppercase tracking-wider font-mono">
           <span>Onera Operator &middot; Open Source</span>
           <div className="flex items-center gap-6">
-            <a href="#" className="hover:text-primary transition-colors">
-              About
+            <a
+              href="https://github.com/anomalyco/onera-operator"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-primary transition-colors"
+            >
+              GitHub
             </a>
-            <a href="#" className="hover:text-primary transition-colors">
-              Terms
-            </a>
-            <a href="#" className="hover:text-primary transition-colors">
-              Privacy
+            <a
+              href="https://x.com/onerachat"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-primary transition-colors"
+            >
+              Twitter
             </a>
             <a
               href="mailto:contact@onera.chat"

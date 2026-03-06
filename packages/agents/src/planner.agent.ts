@@ -39,6 +39,7 @@ export async function runPlannerAgent(input: PlannerInput) {
       "\n- NEVER create tasks to 'set up social media accounts' or 'create profiles'. Assume the startup already has social media accounts configured." +
       "\n- NEVER suggest creating new accounts, registering domains, or setting up infrastructure" +
       "\n- Focus on content creation, research, outreach emails, competitive analysis, and engineering tasks" +
+      "\n- OUTREACH tasks: each run should target 10 emails. Include 'Send 10 outreach emails' in the task description so the agent knows the target count." +
       "\n- Engineering tasks (agentName: engineer) should automate what a startup COO would want built:" +
       "\n  * Growth automation: SEO audit scripts, conversion funnel analysis, landing page performance scrapers, A/B test result analyzers, lead scoring calculators" +
       "\n  * Operational efficiency: report generators, data pipeline scripts, CRM data cleanup, workflow automation, KPI dashboard builders, churn analysis" +

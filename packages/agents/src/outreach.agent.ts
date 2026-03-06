@@ -45,7 +45,7 @@ export async function runOutreachAgent(input: OutreachAgentInput) {
       "This converts raw search results into structured lead profiles with emails. " +
       "findLeads returns an array of lead objects, each with companyName, contactName, " +
       "contactRole, email, companyUrl, reason, and outreachAngle.\n" +
-      "   If the task specifies a number, use that. Otherwise, aim for 10 to 20 leads per run.\n" +
+      "   If the task specifies a number, use that. Otherwise, find exactly 10 leads and send exactly 10 emails per run.\n" +
       "3. For EACH lead from the results, do a generate then send pair:\n" +
       "   a. Call generateEmail using the lead's email, contactName, companyName, companyUrl, " +
       "contactRole, and the full startup context. Pass the lead's companyUrl as recipientCompanyUrl.\n" +

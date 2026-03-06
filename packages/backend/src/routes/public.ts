@@ -4,6 +4,7 @@ import {
   answerPublicQuestion,
   checkAskRateLimit,
 } from "../services/public.service.js";
+import { createActivitySubscriber } from "../services/activity.service.js";
 
 export async function publicRoutes(app: FastifyInstance) {
   // CORS preflight for POST /api/public/ask
@@ -20,6 +21,39 @@ export async function publicRoutes(app: FastifyInstance) {
     const data = await getPublicLiveData();
     reply.header("Access-Control-Allow-Origin", "*");
     return reply.send(data);
+  });
+
+  // ── Public SSE stream — real-time agent activity (no auth) ──────
+  app.get("/api/public/stream", async (request, reply) => {
+    reply.raw.writeHead(200, {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      Connection: "keep-alive",
+      "Access-Control-Allow-Origin": "*",
+    });
+
+    reply.raw.write(": connected\n\n");
+
+    const { unsubscribe } = createActivitySubscriber((event) => {
+      // Redact sensitive data for public consumption
+      const publicEvent = {
+        type: event.type,
+        agentName: event.agentName,
+        taskTitle: event.taskTitle,
+        message: event.message,
+        timestamp: event.timestamp,
+      };
+      reply.raw.write(`data: ${JSON.stringify(publicEvent)}\n\n`);
+    });
+
+    const keepalive = setInterval(() => {
+      reply.raw.write(": keepalive\n\n");
+    }, 15000);
+
+    request.raw.on("close", () => {
+      clearInterval(keepalive);
+      unsubscribe();
+    });
   });
 
   app.post("/api/public/ask", async (request, reply) => {

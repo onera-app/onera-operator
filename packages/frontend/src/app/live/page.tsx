@@ -15,6 +15,11 @@ import {
 import { formatRelativeTime } from "@/lib/utils";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { CollapsibleColumn } from "@/components/ui/collapsible-column";
+import { OperatorFace, eventToMood } from "@/components/ui/operator-face";
+import {
+  PublicLiveFeed,
+  type PublicStreamEvent,
+} from "@/components/ui/public-live-feed";
 
 // ---------------------------------------------------------------------------
 // Elapsed-time hook (for running tasks)
@@ -43,6 +48,7 @@ function useElapsed(startIso: string | null, active: boolean): string {
 export default function LivePage() {
   const [data, setData] = useState<PublicLiveData | null>(null);
   const [, setTick] = useState(0);
+  const [lastEvent, setLastEvent] = useState<PublicStreamEvent | null>(null);
 
   const fetchData = useCallback(async () => {
     try {
@@ -61,6 +67,17 @@ export default function LivePage() {
       clearInterval(t);
     };
   }, [fetchData]);
+
+  // Derive operator mood from latest SSE event
+  const operatorMood = lastEvent
+    ? eventToMood(lastEvent.agentName, lastEvent.type)
+    : data?.agents.some((a) => a.status === "running")
+      ? "working"
+      : "idle";
+
+  const handleStreamEvent = useCallback((event: PublicStreamEvent) => {
+    setLastEvent(event);
+  }, []);
 
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-background bg-blueprint">
@@ -88,7 +105,11 @@ export default function LivePage() {
       {/* ── 4-column dashboard — collapsible ────────────────────── */}
       <div className="flex-1 flex overflow-hidden">
         <CollapsibleColumn title="Operator" className="p-5 space-y-6">
-          <OperatorColumn data={data} />
+          <OperatorColumn
+            data={data}
+            mood={operatorMood}
+            onStreamEvent={handleStreamEvent}
+          />
         </CollapsibleColumn>
 
         <CollapsibleColumn title="Tasks" className="p-5">
@@ -150,33 +171,40 @@ function TerminalBar({ lines }: { lines: TerminalLine[] }) {
 }
 
 // ---------------------------------------------------------------------------
-// Col 1 — Operator status + stats
+// Col 1 — Operator status + live stream + stats
 // ---------------------------------------------------------------------------
-function OperatorColumn({ data }: { data: PublicLiveData | null }) {
+function OperatorColumn({
+  data,
+  mood,
+  onStreamEvent,
+}: {
+  data: PublicLiveData | null;
+  mood: string;
+  onStreamEvent: (event: PublicStreamEvent) => void;
+}) {
   const running = data?.agents.filter((a) => a.status === "running").length ?? 0;
   const stats = data?.stats;
 
   return (
     <>
-      {/* Operator face */}
+      {/* Animated operator face */}
       <CollapsibleSection title="Onera Operator">
-        <div className="border border-dashed border-border p-4 flex items-center gap-3">
-          <div className="text-primary text-xs leading-none whitespace-pre font-bold shrink-0">
-            {`| ^  ^ |
-| ${running > 0 ? "-__-" : "o  o"} |
-|______|`}
-          </div>
-          <div>
-            <p className="text-xs font-bold text-primary">
-              {running > 0 ? "Working" : "Idle"}
-            </p>
-            <p className="text-[10px] text-muted-foreground mt-0.5">
-              {running > 0
-                ? `${running} agent${running > 1 ? "s" : ""} active`
-                : "Waiting for next loop"}
-            </p>
-          </div>
-        </div>
+        <OperatorFace
+          mood={mood as Parameters<typeof OperatorFace>[0]["mood"]}
+        />
+      </CollapsibleSection>
+
+      {/* Live stream feed */}
+      <CollapsibleSection
+        title="Live Feed"
+        badge={
+          <span className="text-[9px] text-green-600 font-mono">SSE</span>
+        }
+      >
+        <PublicLiveFeed
+          maxLines={60}
+          onEvent={onStreamEvent}
+        />
       </CollapsibleSection>
 
       {/* Business stats */}
