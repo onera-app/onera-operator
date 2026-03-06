@@ -71,6 +71,23 @@ param clerkAfterSignInUrl string = '/dashboard'
 param clerkAfterSignUpUrl string = '/new'
 param clerkAfterSignOutUrl string = '/home'
 
+// --- DodoPayments (billing) ---
+@secure()
+param dodoPaymentsApiKey string = ''
+
+@secure()
+param dodoPaymentsWebhookKey string = ''
+
+param dodoPaymentsEnvironment string = 'live_mode'
+param dodoPaymentsReturnUrl string = 'https://operator.onera.chat/dashboard?billing=success'
+
+// Dodo live-mode product IDs
+param dodoSubscriptionProductId string = ''
+param dodoGrowthProductId string = ''
+param dodoScaleProductId string = ''
+param dodoPowerProductId string = ''
+param dodoMegaProductId string = ''
+
 param frontendCustomDomain string = 'operator.onera.chat'
 param backendCustomDomain string = 'operator-api.onera.chat'
 
@@ -136,6 +153,15 @@ resource backend 'Microsoft.Web/sites@2023-01-01' = {
         { name: 'EXA_API_KEY',                       value: exaApiKey }
         { name: 'FRONTEND_URL',                      value: frontendUrl }
         { name: 'CLERK_SECRET_KEY',                  value: clerkSecretKey }
+        { name: 'DODO_PAYMENTS_API_KEY',             value: dodoPaymentsApiKey }
+        { name: 'DODO_PAYMENTS_WEBHOOK_KEY',         value: dodoPaymentsWebhookKey }
+        { name: 'DODO_PAYMENTS_ENVIRONMENT',         value: dodoPaymentsEnvironment }
+        { name: 'DODO_PAYMENTS_RETURN_URL',          value: dodoPaymentsReturnUrl }
+        { name: 'DODO_SUBSCRIPTION_PRODUCT_ID',      value: dodoSubscriptionProductId }
+        { name: 'DODO_GROWTH_PRODUCT_ID',            value: dodoGrowthProductId }
+        { name: 'DODO_SCALE_PRODUCT_ID',             value: dodoScaleProductId }
+        { name: 'DODO_POWER_PRODUCT_ID',             value: dodoPowerProductId }
+        { name: 'DODO_MEGA_PRODUCT_ID',              value: dodoMegaProductId }
         { name: 'AGENT_LOOP_INTERVAL_CRON',          value: '0 */4 * * *' }
         { name: 'DAILY_REPORT_CRON',                 value: '0 18 * * *' }
         { name: 'WEBSITE_HEALTHCHECK_MAXPINGFAILURES', value: '3' }
