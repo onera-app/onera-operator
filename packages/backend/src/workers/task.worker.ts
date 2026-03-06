@@ -13,7 +13,6 @@ import {
 } from "../services/project.service.js";
 import {
   deductCreditsForTask,
-  canPostTweet,
   ACTION_CREDITS,
 } from "../services/billing.service.js";
 import { getExecutionAgent, AGENT_DISPLAY_NAMES } from "@onera/agents";
@@ -45,20 +44,6 @@ export function startTaskWorker(): Worker<TaskExecutionJob> {
         lastRunAt: new Date(),
         lastError: null,
       });
-
-      // Tweet rate limit: 3 per day per project
-      // Reverts to PENDING so the next scheduler cycle retries automatically.
-      if (agentName === "twitter") {
-        const allowed = await canPostTweet(projectId);
-        if (!allowed) {
-          console.log(
-            `[task-worker] Tweet limit reached for project ${projectId}, deferring "${taskTitle}"`
-          );
-          await updateTaskStatus(taskId, "PENDING");
-          await upsertAgentStatus(agentName, displayName, { status: "idle" });
-          return;
-        }
-      }
 
       // Check and deduct credits — only on first attempt to avoid double-charging on retry.
       // If the user lacks credits, revert the task to PENDING so the next
