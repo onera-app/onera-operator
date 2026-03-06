@@ -12,6 +12,7 @@ import { loopRoutes } from "./routes/loop.js";
 import { userRoutes } from "./routes/users.js";
 import { publicRoutes } from "./routes/public.js";
 import { billingRoutes } from "./routes/billing.js";
+import { adminTweetRoutes } from "./routes/admin-tweets.js";
 
 // Routes that do NOT require authentication
 const PUBLIC_PATHS = new Set([
@@ -59,6 +60,7 @@ export async function buildServer() {
   await app.register(userRoutes);
   await app.register(publicRoutes);
   await app.register(billingRoutes);
+  await app.register(adminTweetRoutes);
 
   return app;
 }
