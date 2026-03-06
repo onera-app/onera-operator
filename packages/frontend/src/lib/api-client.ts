@@ -268,7 +268,7 @@ export interface EmailLogEntry {
   toEmail: string;
   replyTo: string | null;
   subject: string;
-  body: string;
+  body?: string; // excluded from list endpoint to save bandwidth
   status: "SENT" | "FAILED" | "BLOCKED";
   errorMessage: string | null;
   type: "OUTREACH" | "DIGEST" | "NOTIFICATION";

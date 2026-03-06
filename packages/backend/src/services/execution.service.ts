@@ -16,6 +16,17 @@ export async function getExecutionLogs(taskId: string) {
   return prisma.executionLog.findMany({
     where: { taskId },
     orderBy: { createdAt: "desc" },
+    take: 50,
+    select: {
+      id: true,
+      taskId: true,
+      agentName: true,
+      action: true,
+      status: true,
+      duration: true,
+      createdAt: true,
+      // input/output EXCLUDED — large JSON blobs, not needed for list view
+    },
   });
 }
 
@@ -23,8 +34,16 @@ export async function getRecentExecutionLogs(limit = 50) {
   return prisma.executionLog.findMany({
     orderBy: { createdAt: "desc" },
     take: limit,
-    include: {
+    select: {
+      id: true,
+      taskId: true,
+      agentName: true,
+      action: true,
+      status: true,
+      duration: true,
+      createdAt: true,
       task: { select: { title: true, projectId: true } },
+      // input/output EXCLUDED — large JSON blobs
     },
   });
 }

@@ -441,19 +441,39 @@ function TaskMarkdown({ content }: { content: string }) {
 }
 
 function ExpandedDetail({ task }: { task: Task }) {
-  const parsedResult = parseResult(task.result);
+  // result is excluded from the list endpoint to save bandwidth.
+  // Fetch full task detail on-demand when expanded.
+  const [fullTask, setFullTask] = useState<Task | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    // Only fetch if we don't have result yet and task is completed/failed
+    if (!task.result && (task.status === "COMPLETED" || task.status === "FAILED")) {
+      setLoading(true);
+      api.tasks.get(task.id).then((t) => {
+        setFullTask(t);
+        setLoading(false);
+      }).catch(() => setLoading(false));
+    }
+  }, [task.id, task.result, task.status]);
+
+  const effectiveTask = fullTask || task;
+  const parsedResult = parseResult(effectiveTask.result);
   const outreachEmails =
-    task.category === "OUTREACH" && task.result
-      ? parseOutreachEmails(task.result)
+    effectiveTask.category === "OUTREACH" && effectiveTask.result
+      ? parseOutreachEmails(effectiveTask.result)
       : null;
-  const hasContent = task.summary || parsedResult || outreachEmails;
+  const hasContent = effectiveTask.summary || parsedResult || outreachEmails;
 
   return (
     <div className="mt-2 border-t border-dashed border-border/50 pt-2 space-y-2">
+      {loading && (
+        <p className="text-[10px] text-muted-foreground animate-pulse">Loading details...</p>
+      )}
       {/* Kimi-generated markdown summary (preferred) */}
-      {task.summary && (
+      {effectiveTask.summary && (
         <div className="text-muted-foreground">
-          <TaskMarkdown content={task.summary} />
+          <TaskMarkdown content={effectiveTask.summary} />
         </div>
       )}
       {/* For outreach tasks, show email details below the summary */}
@@ -461,12 +481,12 @@ function ExpandedDetail({ task }: { task: Task }) {
         <OutreachEmailList emails={outreachEmails} />
       )}
       {/* Raw result fallback (when no Kimi summary and no outreach emails) */}
-      {parsedResult && !task.summary && !outreachEmails && (
+      {parsedResult && !effectiveTask.summary && !outreachEmails && (
         <div className="text-muted-foreground">
           <TaskMarkdown content={parsedResult} />
         </div>
       )}
-      {!hasContent && (
+      {!hasContent && !loading && (
         <p className="text-[10px] text-muted-foreground italic">
           {task.status === "PENDING"
             ? "Queued, waiting to run"

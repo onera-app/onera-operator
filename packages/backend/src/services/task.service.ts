@@ -9,6 +9,13 @@ export interface TaskFilters {
   agentName?: string;
 }
 
+/**
+ * Lightweight task list for API/polling endpoints.
+ * EXCLUDES the heavy `result` column (10-50KB per row) — the frontend
+ * uses `summary` for display and fetches full detail via GET /api/tasks/:id
+ * only when the user expands a task card.
+ * Capped at 200 rows to prevent unbounded transfers.
+ */
 export async function listTasks(filters: TaskFilters = {}) {
   const where: Record<string, unknown> = {};
 
@@ -23,7 +30,24 @@ export async function listTasks(filters: TaskFilters = {}) {
   return prisma.task.findMany({
     where,
     orderBy: [{ priority: "asc" }, { createdAt: "desc" }],
-    include: {
+    take: 200,
+    select: {
+      id: true,
+      projectId: true,
+      title: true,
+      description: true,
+      category: true,
+      priority: true,
+      status: true,
+      automatable: true,
+      agentName: true,
+      // result EXCLUDED — 10-50KB per row, fetched on-demand via getTask()
+      summary: true,
+      credits: true,
+      scheduledFor: true,
+      completedAt: true,
+      createdAt: true,
+      updatedAt: true,
       project: { select: { name: true } },
     },
   });
@@ -34,7 +58,19 @@ export async function getTask(id: string) {
     where: { id },
     include: {
       project: { select: { name: true } },
-      executionLogs: { orderBy: { createdAt: "desc" }, take: 20 },
+      executionLogs: {
+        orderBy: { createdAt: "desc" },
+        take: 20,
+        select: {
+          id: true,
+          agentName: true,
+          action: true,
+          status: true,
+          duration: true,
+          createdAt: true,
+          // input/output EXCLUDED from list — large JSON blobs
+        },
+      },
     },
   });
 }
@@ -124,6 +160,19 @@ export async function getPendingAutomatableTasks(projectId?: string) {
   return prisma.task.findMany({
     where,
     orderBy: [{ priority: "asc" }, { createdAt: "asc" }],
+    take: 50,
+    select: {
+      id: true,
+      projectId: true,
+      title: true,
+      description: true,
+      category: true,
+      priority: true,
+      status: true,
+      agentName: true,
+      automatable: true,
+      credits: true,
+    },
   });
 }
 
@@ -138,6 +187,19 @@ export async function getRecentCompletedTasks(
     },
     orderBy: { completedAt: "desc" },
     take: limit,
+    select: {
+      id: true,
+      title: true,
+      description: true,
+      category: true,
+      priority: true,
+      status: true,
+      agentName: true,
+      summary: true,
+      completedAt: true,
+      createdAt: true,
+      // result EXCLUDED — callers only use title/summary for context
+    },
   });
 }
 

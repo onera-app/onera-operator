@@ -99,14 +99,7 @@ async function runAgentLoop(specificProjectId?: string) {
         completedTasks.length > 0
           ? completedTasks
               .map((t) => {
-                let summary = "completed";
-                if (t.result) {
-                  try {
-                    summary = JSON.parse(t.result).text?.substring(0, 100) || "completed";
-                  } catch {
-                    summary = t.result.substring(0, 100);
-                  }
-                }
+                const summary = t.summary || "completed";
                 return `- ${t.title}: ${summary}`;
               })
               .join("\n")

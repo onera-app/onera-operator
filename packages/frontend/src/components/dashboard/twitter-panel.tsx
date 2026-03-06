@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { Badge } from "@/components/ui/badge";
-import { api, type Task, type ExecutionLog } from "@/lib/api-client";
+import { api, type EmailLogEntry } from "@/lib/api-client";
 import { formatRelativeTime } from "@/lib/utils";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
 
@@ -29,15 +29,14 @@ export function TwitterPanel({ projectId }: TwitterPanelProps) {
 
   const fetchData = useCallback(async () => {
     try {
-      // Get completed twitter tasks to extract generated tweets
-      const tasks = await api.tasks.list({ projectId });
-
-      const twitterTasks = tasks.filter(
-        (t) => t.agentName === "twitter" && t.status === "COMPLETED" && t.result
-      );
-      const outreachTasks = tasks.filter(
-        (t) => t.agentName === "outreach" && t.status === "COMPLETED" && t.result
-      );
+      // Fetch from proper data sources instead of parsing raw task.result blobs
+      const [tasks, tweetData, emailData] = await Promise.all([
+        api.tasks.list({ projectId }),
+        // Tweet queue: fetch recent tweets (reuse admin endpoint, filtered by project)
+        api.admin.tweets.list({ projectId, limit: 20 }).catch(() => ({ tweets: [], total: 0, page: 1, limit: 20 })),
+        // Email logs: use the proper email_logs table
+        api.projects.emails(projectId, { limit: 20 }).catch(() => [] as EmailLogEntry[]),
+      ]);
 
       setTwitterTaskCount(
         tasks.filter((t) => t.agentName === "twitter").length
@@ -46,45 +45,19 @@ export function TwitterPanel({ projectId }: TwitterPanelProps) {
         tasks.filter((t) => t.agentName === "outreach").length
       );
 
-      // Extract tweets from task results
-      const parsedTweets: ParsedTweet[] = [];
-      for (const task of twitterTasks) {
-        try {
-          const result = JSON.parse(task.result!);
-          const toolResults = result.toolResults || [];
-          for (const tr of toolResults) {
-            if (tr.tool === "scheduleTweet" && tr.result?.tweet) {
-              parsedTweets.push({
-                text: tr.result.tweet,
-                scheduledTime: tr.result.scheduledTime || task.completedAt || task.createdAt,
-              });
-            }
-          }
-        } catch {
-          // skip unparseable results
-        }
-      }
+      // Map tweet queue entries to display format
+      const parsedTweets: ParsedTweet[] = tweetData.tweets.map((t) => ({
+        text: t.content,
+        scheduledTime: t.postedAt || t.generatedAt,
+      }));
       setTweets(parsedTweets);
 
-      // Extract emails from outreach task results
-      const parsedEmails: ParsedEmail[] = [];
-      for (const task of outreachTasks) {
-        try {
-          const result = JSON.parse(task.result!);
-          const toolResults = result.toolResults || [];
-          for (const tr of toolResults) {
-            if (tr.tool === "sendEmail" && tr.result) {
-              parsedEmails.push({
-                subject: tr.result.subject || "Outreach email",
-                to: tr.result.to || tr.result.recipient || "unknown",
-                sentAt: tr.result.sentAt || task.completedAt || task.createdAt,
-              });
-            }
-          }
-        } catch {
-          // skip
-        }
-      }
+      // Map email log entries to display format
+      const parsedEmails: ParsedEmail[] = emailData.map((e) => ({
+        subject: e.subject,
+        to: e.toEmail,
+        sentAt: e.sentAt,
+      }));
       setEmails(parsedEmails);
     } catch (err) {
       console.error("Failed to fetch activity data:", err);

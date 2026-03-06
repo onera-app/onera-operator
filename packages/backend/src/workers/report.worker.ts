@@ -65,14 +65,14 @@ export function startReportWorker(): Worker<SchedulerJob> {
                 ? completedTasks
                     .map(
                       (t) =>
-                        `- ${t.title} (${t.category}): ${t.result ? "completed with results" : "completed"}`
+                        `- ${t.title} (${t.category}): ${t.summary || "completed"}`
                     )
                     .join("\n")
                 : "No tasks completed today.",
             failedTasks:
               failedTasks.length > 0
                 ? failedTasks
-                    .map((t) => `- ${t.title}: ${t.result || "failed"}`)
+                    .map((t) => `- ${t.title}: ${t.summary || "failed"}`)
                     .join("\n")
                 : "No failures.",
             pendingTasks:

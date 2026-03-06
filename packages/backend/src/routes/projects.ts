@@ -299,6 +299,20 @@ export async function projectRoutes(app: FastifyInstance) {
       },
       orderBy: { sentAt: "desc" },
       take: limit,
+      select: {
+        id: true,
+        projectId: true,
+        azureMessageId: true,
+        fromEmail: true,
+        toEmail: true,
+        replyTo: true,
+        subject: true,
+        // body EXCLUDED — full HTML email content, not needed for list view
+        status: true,
+        errorMessage: true,
+        type: true,
+        sentAt: true,
+      },
     });
 
     return reply.send(emails);
