@@ -260,10 +260,38 @@ export function createTaskManagerTools(context: TaskToolContext) {
     },
   });
 
+  const executeProjectTask = tool({
+    description:
+      "Execute a task immediately by queuing it for its assigned agent. " +
+      "The task must have an assigned agent and be in PENDING or FAILED status. " +
+      "Use when the user says 'run this now', 'do this task', 'execute it', etc.",
+    parameters: z.object({
+      taskId: z.string().describe("The ID of the task to execute"),
+    }),
+    execute: async ({ taskId }) => {
+      await assertTaskAccess(context, taskId);
+
+      const result = await requestApi<{
+        message: string;
+        taskId: string;
+        agentName: string;
+      }>(baseUrl, `/api/tasks/${taskId}/execute`, {
+        method: "POST",
+      });
+
+      return {
+        message: result.message,
+        taskId: result.taskId,
+        agentName: result.agentName,
+      };
+    },
+  });
+
   return {
     listProjectTasks,
     createProjectTask,
     updateProjectTask,
     deleteProjectTask,
+    executeProjectTask,
   };
 }
