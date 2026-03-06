@@ -66,7 +66,7 @@ export function BillingSection() {
   }
 
   // ─── No subscription yet: show free trial gate ────────────────
-  if (!billing.hasSubscription) {
+  if (!billing.hasSubscription && billing.credits === 0) {
     return (
       <div className="space-y-3">
         <div className="border border-dashed border-border p-4">
@@ -173,28 +173,30 @@ export function BillingSection() {
           </span>
         </div>
 
-        {/* Subscription status */}
-        <div className="flex items-center justify-between mt-2 pt-2 border-t border-dashed border-border">
-          <span className="text-xs text-muted-foreground">Subscription</span>
-          {billing.isTrialing && billing.trialEndsAt ? (
-            <span className="text-xs text-blue-400">
-              Trial ends {new Date(billing.trialEndsAt).toLocaleDateString("en-US", {
-                month: "short",
-                day: "numeric",
-              })}
-            </span>
-          ) : billing.subscriptionStatus === "active" ? (
-            <span className="text-xs text-green-500">Active | $29/mo</span>
-          ) : billing.subscriptionStatus === "cancelled" ? (
-            <span className="text-xs text-red-400">Cancelled</span>
-          ) : billing.subscriptionStatus === "on_hold" ? (
-            <span className="text-xs text-yellow-500">On Hold</span>
-          ) : (
-            <span className="text-xs text-muted-foreground">
-              {billing.subscriptionStatus ?? "Unknown"}
-            </span>
-          )}
-        </div>
+        {/* Subscription status — only show if user has or had a subscription */}
+        {billing.hasSubscription && (
+          <div className="flex items-center justify-between mt-2 pt-2 border-t border-dashed border-border">
+            <span className="text-xs text-muted-foreground">Subscription</span>
+            {billing.isTrialing && billing.trialEndsAt ? (
+              <span className="text-xs text-blue-400">
+                Trial ends {new Date(billing.trialEndsAt).toLocaleDateString("en-US", {
+                  month: "short",
+                  day: "numeric",
+                })}
+              </span>
+            ) : billing.subscriptionStatus === "active" ? (
+              <span className="text-xs text-green-500">Active | $29/mo</span>
+            ) : billing.subscriptionStatus === "cancelled" ? (
+              <span className="text-xs text-red-400">Cancelled</span>
+            ) : billing.subscriptionStatus === "on_hold" ? (
+              <span className="text-xs text-yellow-500">On Hold</span>
+            ) : (
+              <span className="text-xs text-muted-foreground">
+                {billing.subscriptionStatus ?? "Unknown"}
+              </span>
+            )}
+          </div>
+        )}
 
         {billing.credits <= 10 && billing.credits > 0 && (
           <p className="text-xs text-yellow-500 mt-2 pt-2 border-t border-dashed border-border">
