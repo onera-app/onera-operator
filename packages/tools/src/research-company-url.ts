@@ -1,6 +1,6 @@
 import { tool } from "ai";
 import { z } from "zod";
-import { generateText } from "ai";
+import { generateText, type ModelMessage } from "ai";
 import { getModel } from "@onera/ai";
 import { webScraper } from "./web-scraper.js";
 
@@ -9,7 +9,7 @@ export const researchCompanyUrl = tool({
     "Research a company given its website URL. Fetches the actual website content, " +
     "then analyzes the company's product, target market, competitors, and generates " +
     "a comprehensive profile. Used when a new company is created to auto-populate context.",
-  parameters: z.object({
+  inputSchema: z.object({
     url: z.string().describe("The company website URL to research (must be a valid http/https URL)"),
     companyName: z.string().describe("The company name"),
   }),
@@ -17,12 +17,14 @@ export const researchCompanyUrl = tool({
     // Step 1: Fetch the actual website content
     let websiteContent = "";
     try {
-      const scraped = await webScraper.execute(
-        { url, maxLength: 6000, deepCrawl: false },
-        { toolCallId: "research-scrape", messages: [] }
-      );
-      if (scraped.success && scraped.content) {
-        websiteContent = scraped.content;
+      if (webScraper.execute) {
+        const scraped = await webScraper.execute(
+          { url, maxLength: 6000, deepCrawl: false },
+          { toolCallId: "research-scrape", messages: [] as ModelMessage[] }
+        );
+        if (scraped && typeof scraped === "object" && "success" in scraped && scraped.success && "content" in scraped) {
+          websiteContent = scraped.content as string;
+        }
       }
     } catch (err) {
       console.warn(

@@ -1,4 +1,4 @@
-import { generateText } from "ai";
+import { generateText, stepCountIs } from "ai";
 import { getModelForAgent } from "@onera/ai";
 import { executeCode, webSearch, webScraper, summarizeContent, notifyFounder } from "@onera/tools";
 import type { StepEvent } from "./registry.js";
@@ -65,7 +65,7 @@ export async function runEngineerAgent(input: EngineerAgentInput) {
       summarizeContent,
       notifyFounder,
     },
-    maxSteps: 15,
+    stopWhen: stepCountIs(15),
     prompt:
       `## Engineering Task\n${input.taskDescription}\n\n` +
       `## Startup Context\n${input.projectContext}\n\n` +
@@ -77,10 +77,10 @@ export async function runEngineerAgent(input: EngineerAgentInput) {
         input.onStep({ type: "thinking", message: step.text });
       }
       for (const tc of step.toolCalls || []) {
-        input.onStep({ type: "tool_call", message: `Using ${tc.toolName}`, data: tc.args });
+        input.onStep({ type: "tool_call", message: `Using ${tc.toolName}`, data: tc.input });
       }
       for (const tr of step.toolResults || []) {
-        input.onStep({ type: "tool_result", message: `${tr.toolName} done`, data: tr.result });
+        input.onStep({ type: "tool_result", message: `${tr.toolName} done`, data: tr.output });
       }
     },
   });
@@ -91,13 +91,13 @@ export async function runEngineerAgent(input: EngineerAgentInput) {
     toolCalls: result.steps.flatMap((s) =>
       (s.toolCalls || []).map((tc) => ({
         tool: tc.toolName,
-        args: tc.args,
+        args: tc.input,
       }))
     ),
     toolResults: result.steps.flatMap((s) =>
       (s.toolResults || []).map((tr) => ({
         tool: tr.toolName,
-        result: tr.result,
+        result: tr.output,
       }))
     ),
   };

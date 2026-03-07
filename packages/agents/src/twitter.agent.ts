@@ -1,4 +1,4 @@
-import { generateText, tool } from "ai";
+import { generateText, stepCountIs, tool } from "ai";
 import { z } from "zod";
 import { getModelForAgent } from "@onera/ai";
 import { generateTweet } from "@onera/tools";
@@ -23,7 +23,7 @@ export async function runTwitterAgent(input: TwitterAgentInput) {
 
   const scheduleTweetForProject = tool({
     description: "Queue a tweet for manual posting on X/Twitter.",
-    parameters: z.object({
+    inputSchema: z.object({
       tweet: z.string().max(280).describe("The tweet text to queue (max 280 characters)"),
       tone: z.string().describe("The tone used (e.g. sharp, professional, casual). Use 'sharp' as default."),
     }),
@@ -76,7 +76,7 @@ export async function runTwitterAgent(input: TwitterAgentInput) {
       generateTweet,
       scheduleTweet: scheduleTweetForProject,
     },
-    maxSteps: 10,
+    stopWhen: stepCountIs(10),
     prompt:
       `## Task\n${input.taskDescription}\n\n` +
       `## Startup Context\n${input.projectContext}\n\n` +
@@ -87,10 +87,10 @@ export async function runTwitterAgent(input: TwitterAgentInput) {
         input.onStep({ type: "thinking", message: step.text });
       }
       for (const tc of step.toolCalls || []) {
-        input.onStep({ type: "tool_call", message: `Using ${tc.toolName}`, data: tc.args });
+        input.onStep({ type: "tool_call", message: `Using ${tc.toolName}`, data: tc.input });
       }
       for (const tr of step.toolResults || []) {
-        input.onStep({ type: "tool_result", message: `${tr.toolName} done`, data: tr.result });
+        input.onStep({ type: "tool_result", message: `${tr.toolName} done`, data: tr.output });
       }
     },
   });
@@ -101,13 +101,13 @@ export async function runTwitterAgent(input: TwitterAgentInput) {
     toolCalls: result.steps.flatMap((s) =>
       (s.toolCalls || []).map((tc) => ({
         tool: tc.toolName,
-        args: tc.args,
+        args: tc.input,
       }))
     ),
     toolResults: result.steps.flatMap((s) =>
       (s.toolResults || []).map((tr) => ({
         tool: tr.toolName,
-        result: tr.result,
+        result: tr.output,
       }))
     ),
   };

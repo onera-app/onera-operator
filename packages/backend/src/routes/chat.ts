@@ -3,6 +3,7 @@ import { streamChatAgent } from "@onera/agents";
 import { buildProjectContext } from "../services/project.service.js";
 import { prisma } from "@onera/database";
 import { INTERNAL_SECRET } from "../middleware/auth.js";
+import type { ModelMessage } from "ai";
 
 export async function chatRoutes(app: FastifyInstance) {
   app.post<{
@@ -32,7 +33,8 @@ export async function chatRoutes(app: FastifyInstance) {
           return reply.code(403).send({ error: "Access denied: project not found for this user" });
         }
         projectContext = await buildProjectContext(resolvedProjectId);
-      } catch {
+      } catch (err: any) {
+        console.warn("[chat] Failed to load project context:", err.message || err);
         resolvedProjectId = undefined;
       }
     }
@@ -51,12 +53,15 @@ export async function chatRoutes(app: FastifyInstance) {
 
     // Stream the chat response
     // Use internal secret for tool→API calls (JWT expires mid-stream)
-    const result = streamChatAgent(
-      messages.map((m) => ({
-        id: crypto.randomUUID(),
-        role: m.role as "user" | "assistant" | "system",
+    // Filter to only user/assistant roles — "system" is not a valid ModelMessage role in AI SDK v6
+    const modelMessages: ModelMessage[] = messages
+      .filter((m) => m.role === "user" || m.role === "assistant")
+      .map((m) => ({
+        role: m.role as "user" | "assistant",
         content: m.content,
-      })),
+      }));
+    const result = streamChatAgent(
+      modelMessages,
       projectContext,
       {
         projectId: resolvedProjectId,
@@ -91,7 +96,7 @@ export async function chatRoutes(app: FastifyInstance) {
             );
             break;
           case "text-delta":
-            reply.raw.write(part.textDelta);
+            reply.raw.write(part.text);
             break;
           case "error":
             console.error("[chat] Stream error part:", part.error);

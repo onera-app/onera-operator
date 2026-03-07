@@ -1,5 +1,11 @@
-import { streamText, type Message } from "ai";
+import { streamText, stepCountIs, type ModelMessage } from "ai";
 import { getModelForAgent } from "@onera/ai";
+
+// AI SDK v6: StreamTextResult is invariant over its TOOLS generic, so the concrete tool set
+// returned by streamText() cannot be widened to ToolSet in declaration emit without `any`.
+// This is a known SDK limitation — the `any` here is intentional and safe.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type StreamChatResult = ReturnType<typeof streamText<any, any>>;
 import {
   generateTweet,
   scheduleTweet,
@@ -23,10 +29,10 @@ import {
  * Has access to all tools so the user can ask it to perform any operation.
  */
 export function streamChatAgent(
-  messages: Message[],
+  messages: ModelMessage[],
   projectContext: string,
   context?: { projectId?: string; userId?: string; apiBaseUrl?: string; authToken?: string; internalSecret?: string }
-) {
+): StreamChatResult {
   const model = getModelForAgent("chat");
   const taskTools = createTaskManagerTools({
     projectId: context?.projectId,
@@ -83,6 +89,6 @@ export function streamChatAgent(
       notifyFounder,
       ...taskTools,
     },
-    maxSteps: 15,
+    stopWhen: stepCountIs(15),
   });
 }
