@@ -44,6 +44,13 @@ export const webScraper = tool({
 /**
  * Crawl4AI integration — uses the Crawl4AI REST API for deep web crawling.
  * Handles JS rendering, dynamic content, and anti-bot measures.
+ *
+ * Crawl4AI v0.5+ uses a SYNCHRONOUS /crawl endpoint that returns results
+ * immediately in the response body (no task_id polling required).
+ *
+ * Response shape:
+ *   { success: true, results: [{ markdown: { raw_markdown, fit_markdown }, cleaned_html, ... }] }
+ *
  * Docs: https://docs.crawl4ai.com/
  */
 async function crawlWithCrawl4AI(
@@ -61,21 +68,20 @@ async function crawlWithCrawl4AI(
 }> {
   try {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 60000);
+    const timeout = setTimeout(() => controller.abort(), 45000);
 
-    // Submit crawl job
     const res = await fetch(`${crawl4aiUrl}/crawl`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       signal: controller.signal,
       body: JSON.stringify({
         urls: [url],
-        priority: 10,
         crawler_params: {
           headless: true,
           word_count_threshold: 10,
           remove_overlay_elements: true,
           process_iframes: false,
+          page_timeout: 20000,
         },
         extra: {
           only_text: true,
@@ -89,70 +95,65 @@ async function crawlWithCrawl4AI(
       return { url, success: false, content: "", error: `Crawl4AI HTTP ${res.status}` };
     }
 
-    const data = (await res.json()) as { task_id?: string };
-    if (!data.task_id) {
-      return { url, success: false, content: "", error: "No task_id from Crawl4AI" };
+    // v0.5+ synchronous response — results are returned directly
+    const data = (await res.json()) as {
+      success?: boolean;
+      task_id?: string; // v0.4 legacy
+      results?: Array<{
+        success?: boolean;
+        markdown?: { raw_markdown?: string; fit_markdown?: string } | string;
+        fit_markdown?: string;
+        cleaned_html?: string;
+        error_message?: string;
+      }>;
+    };
+
+    // Handle v0.4 async response (task_id) — fall through to error
+    if (data.task_id) {
+      return { url, success: false, content: "", error: "Crawl4AI returned task_id (unexpected async mode)" };
     }
 
-    // Poll for result (up to 55s)
-    const taskId = data.task_id;
-    const pollEnd = Date.now() + 55000;
-
-    while (Date.now() < pollEnd) {
-      await new Promise((r) => setTimeout(r, 2000));
-
-      const pollRes = await fetch(`${crawl4aiUrl}/task/${taskId}`);
-      if (!pollRes.ok) continue;
-
-      const pollData = (await pollRes.json()) as {
-        status?: string;
-        result?: {
-          results?: Array<{
-            success?: boolean;
-            markdown?: string;
-            fit_markdown?: string;
-            error_message?: string;
-          }>;
-        };
-      };
-
-      if (pollData.status === "completed" && pollData.result?.results?.[0]) {
-        const result = pollData.result.results[0];
-        if (!result.success) {
-          return {
-            url,
-            success: false,
-            content: "",
-            error: result.error_message || "Crawl4AI crawl failed",
-          };
-        }
-
-        const text = result.fit_markdown || result.markdown || "";
-        const trimmed = text.length > maxLength ? text.substring(0, maxLength) + "..." : text;
-
-        return {
-          url,
-          success: true,
-          content: trimmed,
-          contentLength: text.length,
-          truncated: text.length > maxLength,
-          source: "crawl4ai",
-        };
-      }
-
-      if (pollData.status === "failed") {
-        return { url, success: false, content: "", error: "Crawl4AI task failed" };
-      }
+    const result = data.results?.[0];
+    if (!result) {
+      return { url, success: false, content: "", error: "Crawl4AI returned no results" };
     }
 
-    return { url, success: false, content: "", error: "Crawl4AI polling timeout (55s)" };
+    if (!result.success) {
+      return { url, success: false, content: "", error: result.error_message || "Crawl4AI crawl failed" };
+    }
+
+    // Extract markdown — v0.5 wraps it in an object, v0.4 was a plain string
+    let text = "";
+    if (typeof result.markdown === "object" && result.markdown !== null) {
+      text = result.markdown.fit_markdown || result.markdown.raw_markdown || "";
+    } else if (typeof result.markdown === "string") {
+      text = result.markdown;
+    }
+    if (!text) {
+      text = result.fit_markdown || result.cleaned_html?.replace(/<[^>]+>/g, " ") || "";
+    }
+
+    if (!text) {
+      return { url, success: false, content: "", error: "Crawl4AI returned empty content" };
+    }
+
+    const trimmed = text.length > maxLength ? text.substring(0, maxLength) + "..." : text;
+
+    return {
+      url,
+      success: true,
+      content: trimmed,
+      contentLength: text.length,
+      truncated: text.length > maxLength,
+      source: "crawl4ai",
+    };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     return {
       url,
       success: false,
       content: "",
-      error: message.includes("abort") ? "Crawl4AI request timed out" : message,
+      error: message.includes("abort") ? "Crawl4AI request timed out (45s)" : message,
     };
   }
 }

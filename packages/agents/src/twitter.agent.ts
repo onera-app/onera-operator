@@ -95,8 +95,18 @@ export async function runTwitterAgent(input: TwitterAgentInput) {
     },
   });
 
+  // Collect text from ALL steps — Kimi-K2.5 sometimes generates text in the final
+  // tool-call step itself (parallel tool calling), so result.text may be empty while
+  // the actual narrative is in steps[last].text. We join all non-empty step texts.
+  const allText = result.steps
+    .map((s) => s.text || "")
+    .filter((t) => t.length > 0)
+    .join("\n\n")
+    .trim();
+  const finalText = result.text || allText;
+
   return {
-    text: result.text,
+    text: finalText,
     steps: result.steps.length,
     toolCalls: result.steps.flatMap((s) =>
       (s.toolCalls || []).map((tc) => ({
