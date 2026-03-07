@@ -29,8 +29,8 @@ async function main() {
   // Initialize agent statuses in the database (non-blocking)
   for (const [name, displayName] of Object.entries(AGENT_DISPLAY_NAMES)) {
     await upsertAgentStatus(name, displayName, { status: "idle" }).catch(
-      () => {
-        // Ignore if DB is not ready yet
+      (err) => {
+        console.warn(`[init] Failed to init agent status for ${name}:`, err.message || err);
       }
     );
   }
@@ -43,12 +43,17 @@ async function main() {
       const { startReportWorker } = await import("./workers/report.worker.js");
       const { setupScheduledJobs } = await import("./queue/scheduler.queue.js");
 
+      const { startStaleTaskCleanup } = await import("./services/stale-task.service.js");
+
       startTaskWorker();
       startSchedulerWorker();
       startReportWorker();
       await setupScheduledJobs();
 
-      console.log("[onera] Workers and scheduled jobs started");
+      // Start stale task recovery (runs on startup + every 5 minutes)
+      startStaleTaskCleanup();
+
+      console.log("[onera] Workers, scheduled jobs, and stale task cleanup started");
     } catch (err) {
       console.warn(
         "[onera] Could not start workers (Redis may not be available):",

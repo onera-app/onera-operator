@@ -141,7 +141,9 @@ export function startTaskWorker(): Worker<TaskExecutionJob> {
         await updateTaskStatus(taskId, "COMPLETED", resultJson);
 
         // Generate a human-readable summary via Kimi (fire-and-forget)
-        summarizeTaskResult(taskId, taskTitle, agentName, resultJson).catch(() => {});
+        summarizeTaskResult(taskId, taskTitle, agentName, resultJson).catch((err) => {
+          console.error(`[task-worker] Summarization failed for task ${taskId}:`, err.message || err);
+        });
 
         // Update agent status
         await upsertAgentStatus(agentName, displayName, {
@@ -215,6 +217,8 @@ export function startTaskWorker(): Worker<TaskExecutionJob> {
     {
       connection: getRedisConnection(),
       concurrency: 2,
+      lockDuration: 600_000, // 10 min — if job takes longer, BullMQ considers it stalled
+      stalledInterval: 120_000, // Check for stalled jobs every 2 min
     }
   );
 

@@ -63,7 +63,7 @@ export async function summarizeTaskResult(
         `Task: ${taskTitle}\n` +
         `Agent: ${agentName}\n` +
         `Result:\n${resultJson.substring(0, 4000)}`,
-      maxTokens: 400,
+      maxOutputTokens: 400,
     });
 
     const summary = text.trim();

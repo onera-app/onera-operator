@@ -8,7 +8,7 @@ export const generateEmail = tool({
     "Generate a cold outreach email for the startup. Takes recipient info, " +
     "startup context (including company name and URL), and produces a personalized, " +
     "clearly structured email. The sender introduces themselves as the COO of the startup.",
-  parameters: z.object({
+  inputSchema: z.object({
     recipientName: z.string().describe("Name of the recipient"),
     recipientRole: z.string().describe("Role or title of the recipient"),
     recipientCompany: z.string().describe("Company of the recipient"),

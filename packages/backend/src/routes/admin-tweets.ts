@@ -73,7 +73,8 @@ export async function adminTweetRoutes(app: FastifyInstance) {
         include: { project: { select: { name: true } } },
       });
       return reply.send(tweet);
-    } catch {
+    } catch (err: any) {
+      console.error(`[admin-tweets] Failed to update tweet ${request.params.id}:`, err.message || err);
       return reply.code(404).send({ error: "Tweet not found" });
     }
   });
@@ -93,7 +94,7 @@ export async function adminTweetRoutes(app: FastifyInstance) {
 
       // Use the generateTweet tool to create new content
       const { generateTweet } = await import("@onera/tools");
-      const result = await generateTweet.execute(
+      const result = await generateTweet.execute!(
         {
           topic: "startup showcase",
           startupContext: [
@@ -108,7 +109,7 @@ export async function adminTweetRoutes(app: FastifyInstance) {
           tone: existing.tone as "sharp" | "matter-of-fact" | "bold" | "empathetic",
         },
         { toolCallId: "regenerate", messages: [] }
-      );
+      ) as { tweet: string; characterCount: number; topic: string; tone: string; taggedHandles: (string | null)[] };
 
       const updated = await prisma.tweetQueue.update({
         where: { id: request.params.id },

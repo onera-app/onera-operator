@@ -163,7 +163,7 @@ export const sendEmail = tool({
     "IMPORTANT: Always set the 'from' parameter to the company email from the startup context " +
     "(e.g. companyname@onera.app). This ensures emails come from the company's own address. " +
     "Requires AZURE_EMAIL_CONNECTION_STRING to be configured for live sending.",
-  parameters: z.object({
+  inputSchema: z.object({
     to: z.string().describe("Recipient email address (e.g. user@example.com)"),
     subject: z.string().describe("Email subject line"),
     body: z.string().describe("Email body content (plain text or markdown)"),

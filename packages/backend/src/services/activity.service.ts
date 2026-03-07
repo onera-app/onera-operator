@@ -33,7 +33,8 @@ function getPublisher(): IORedis | null {
     lazyConnect: true,
   });
 
-  publisher.connect().catch(() => {
+  publisher.connect().catch((err) => {
+    console.warn("[activity] Redis publisher connection failed:", err.message || err);
     publisher = null;
   });
 
@@ -50,8 +51,8 @@ export function publishAgentEvent(event: Omit<AgentEvent, "timestamp">) {
     timestamp: new Date().toISOString(),
   };
 
-  pub.publish(CHANNEL, JSON.stringify(fullEvent)).catch(() => {
-    // Silently fail — activity is non-critical
+  pub.publish(CHANNEL, JSON.stringify(fullEvent)).catch((err) => {
+    console.warn("[activity] Redis publish failed:", err.message || err);
   });
 }
 
@@ -72,7 +73,9 @@ export function createActivitySubscriber(
     maxRetriesPerRequest: 3,
   });
 
-  subscriber.subscribe(CHANNEL).catch(() => {});
+  subscriber.subscribe(CHANNEL).catch((err) => {
+    console.warn("[activity] Redis subscribe failed:", err.message || err);
+  });
 
   subscriber.on("message", (_channel, message) => {
     try {

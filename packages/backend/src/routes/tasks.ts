@@ -121,7 +121,8 @@ export async function taskRoutes(app: FastifyInstance) {
     try {
       const task = await updateTaskStatus(request.params.id, status, result);
       return reply.send(task);
-    } catch {
+    } catch (err: any) {
+      console.error(`[tasks] Failed to update task status ${request.params.id}:`, err.message || err);
       return reply.code(404).send({ error: "Task not found" });
     }
   });
@@ -169,7 +170,8 @@ export async function taskRoutes(app: FastifyInstance) {
         agentName,
       });
       return reply.send(task);
-    } catch {
+    } catch (err: any) {
+      console.error(`[tasks] Failed to update task ${request.params.id}:`, err.message || err);
       return reply.code(404).send({ error: "Task not found" });
     }
   });
@@ -179,7 +181,8 @@ export async function taskRoutes(app: FastifyInstance) {
     try {
       await deleteTask(request.params.id);
       return reply.code(204).send();
-    } catch {
+    } catch (err: any) {
+      console.error(`[tasks] Failed to delete task ${request.params.id}:`, err.message || err);
       return reply.code(404).send({ error: "Task not found" });
     }
   });
@@ -193,6 +196,49 @@ export async function taskRoutes(app: FastifyInstance) {
     }
   );
 
+  // Force-retry a stuck IN_PROGRESS task — resets to PENDING and re-enqueues
+  app.post<{ Params: { id: string } }>(
+    "/api/tasks/:id/retry",
+    async (request, reply) => {
+      const task = await getTask(request.params.id);
+      if (!task) {
+        return reply.code(404).send({ error: "Task not found" });
+      }
+
+      if (task.status !== "IN_PROGRESS" && task.status !== "FAILED") {
+        return reply.code(400).send({
+          error: `Can only retry tasks that are IN_PROGRESS or FAILED. Current status: ${task.status}`,
+        });
+      }
+
+      if (!task.agentName) {
+        return reply
+          .code(400)
+          .send({ error: "Task has no assigned agent — cannot retry" });
+      }
+
+      // Reset to PENDING
+      await updateTaskStatus(task.id, "PENDING", JSON.stringify({
+        error: `Manually retried by user (was ${task.status})`,
+      }));
+
+      // Re-enqueue
+      await enqueueTaskExecution({
+        taskId: task.id,
+        projectId: task.projectId,
+        agentName: task.agentName,
+        taskTitle: task.title,
+        taskDescription: task.description,
+      });
+
+      return reply.send({
+        message: `Task "${task.title}" reset and re-queued for execution`,
+        taskId: task.id,
+        agentName: task.agentName,
+      });
+    }
+  );
+
   // Execute a specific task immediately ("Do it now")
   app.post<{ Params: { id: string } }>(
     "/api/tasks/:id/execute",
@@ -203,7 +249,7 @@ export async function taskRoutes(app: FastifyInstance) {
       }
 
       if (task.status === "IN_PROGRESS") {
-        return reply.code(409).send({ error: "Task is already running" });
+        return reply.code(409).send({ error: "Task is already running. Use /retry to force-retry." });
       }
 
       if (task.status === "COMPLETED") {

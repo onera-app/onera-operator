@@ -79,15 +79,23 @@ function createModelForProvider(config: AIConfig): LanguageModel {
     case "azure": {
       const azureOptions: Record<string, unknown> = {
         apiKey: config.apiKey,
+        // @ai-sdk/azure@3 defaults to /v1 paths. Azure OpenAI requires
+        // deployment-based URLs: {base}/deployments/{model}/chat/completions
+        useDeploymentBasedUrls: true,
+        // Use the standard Azure API version
+        apiVersion: "2025-03-01-preview",
       };
       // Support either a full base URL or a resource name.
-      // @ai-sdk/azure with baseURL resolves as: {baseURL}/{modelId}{path}
-      // So baseURL must include /openai/deployments to work properly.
-      // If the user gives us a root Azure URL, we append the path ourselves.
+      // In @ai-sdk/azure@3 with useDeploymentBasedUrls, the URL is built as:
+      //   {baseURL}/deployments/{modelId}{path}?api-version=...
+      // So baseURL should end at /openai (not /openai/deployments).
       if (config.baseURL) {
         let base = config.baseURL.replace(/\/+$/, ""); // strip trailing slashes
-        if (!base.includes("/openai/deployments")) {
-          base = `${base}/openai/deployments`;
+        // Remove /openai/deployments suffix if present (leftover from v1 config)
+        base = base.replace(/\/openai\/deployments$/, "");
+        // Ensure it ends with /openai
+        if (!base.endsWith("/openai")) {
+          base = `${base}/openai`;
         }
         azureOptions.baseURL = base;
       } else if (config.azureResourceName) {
@@ -98,7 +106,10 @@ function createModelForProvider(config: AIConfig): LanguageModel {
         );
       }
       const azure = createAzure(azureOptions);
-      return azure(config.azureDeploymentName || config.model);
+      // In @ai-sdk/azure@3, azure(model) defaults to the Responses API (/responses).
+      // Azure OpenAI doesn't support /responses for all models.
+      // Use azure.chat(model) to force the Chat Completions API.
+      return azure.chat(config.azureDeploymentName || config.model);
     }
 
     case "openai-compatible": {

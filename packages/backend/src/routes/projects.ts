@@ -82,7 +82,7 @@ export async function projectRoutes(app: FastifyInstance) {
     // If auto-research is requested and there's a URL, run the research tool
     if (autoResearch && website) {
       try {
-        const toolResult = await researchCompanyUrl.execute(
+        const toolResult = await researchCompanyUrl.execute!(
           { url: website, companyName: name },
           { toolCallId: "auto-research", messages: [] }
         );
@@ -256,7 +256,8 @@ export async function projectRoutes(app: FastifyInstance) {
     try {
       const project = await updateProject(request.params.id, request.body);
       return reply.send(project);
-    } catch {
+    } catch (err: any) {
+      console.error(`[projects] Failed to update project ${request.params.id}:`, err.message || err);
       return reply.code(404).send({ error: "Project not found" });
     }
   });
@@ -268,7 +269,8 @@ export async function projectRoutes(app: FastifyInstance) {
       try {
         await deleteProject(request.params.id);
         return reply.code(204).send();
-      } catch {
+      } catch (err: any) {
+        console.error(`[projects] Failed to delete project ${request.params.id}:`, err.message || err);
         return reply.code(404).send({ error: "Project not found" });
       }
     }

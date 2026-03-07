@@ -20,7 +20,7 @@ export const findLeads = tool({
     "lead objects with companyName, contactName, contactRole, email, companyUrl, " +
     "reason, and outreachAngle. For best results, first use webSearch to find " +
     "real companies, then pass those results here to get structured profiles.",
-  parameters: z.object({
+  inputSchema: z.object({
     startupContext: z
       .string()
       .describe("Startup name, product, and value proposition"),
@@ -86,7 +86,7 @@ export const findLeads = tool({
           `Startup context: ${startupContext}\n\n` +
           `Target audience: ${targetAudience}${industryFilter}\n\n` +
           `Generate exactly ${leadCount} lead profiles as a JSON array. Output ONLY the JSON array, nothing else.`,
-        maxTokens: 4000,
+        maxOutputTokens: 4000,
       });
 
       // Parse the JSON response — handle markdown fences, leading text, etc.

@@ -50,7 +50,7 @@ export const notifyFounder = tool({
     "important insights, or status updates on completed work. " +
     "Extract the Founder Email, Company Email, and Startup Name from the startup context. " +
     "Keep messages concise and actionable. Do NOT use this for cold outreach to external people.",
-  parameters: z.object({
+  inputSchema: z.object({
     founderEmail: z
       .string()
       .describe("The founder's email address (from 'Founder Email' in the startup context)"),

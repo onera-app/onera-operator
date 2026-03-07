@@ -15,7 +15,7 @@ export const executeCode = tool({
     "Execute code in a secure sandbox environment. Use this to run Python or JavaScript scripts, " +
     "data analysis, web scraping scripts, automation tasks, or any code that needs to be executed. " +
     "Returns stdout, stderr, and execution results.",
-  parameters: z.object({
+  inputSchema: z.object({
     code: z.string().describe("The code to execute"),
     language: z
       .enum(["python", "javascript", "bash"])

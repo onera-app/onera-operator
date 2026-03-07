@@ -7,7 +7,7 @@ export const generateTweet = tool({
   description:
     "Generate a tweet showcasing a startup from Onera Operator's portfolio. " +
     "Produces a tweet following pain point to product solution pattern, tagging the founder/company handles.",
-  parameters: z.object({
+  inputSchema: z.object({
     topic: z.string().describe("The specific angle, pain point, or product feature to highlight"),
     startupContext: z
       .string()

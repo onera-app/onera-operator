@@ -12,7 +12,7 @@ export const scheduleTweet = tool({
   description:
     "Queue a tweet for manual posting. The tweet will appear in the admin dashboard " +
     "for review and manual posting on X/Twitter.",
-  parameters: z.object({
+  inputSchema: z.object({
     tweet: z.string().max(280).describe("The tweet text to queue (max 280 characters)"),
     projectId: z.string().describe("The project ID this tweet belongs to"),
     tone: z.string().describe("The tone used to generate this tweet (e.g. sharp, bold, empathetic). Use 'sharp' as default."),

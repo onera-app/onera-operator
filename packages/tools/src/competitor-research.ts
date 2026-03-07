@@ -7,7 +7,7 @@ export const competitorResearch = tool({
   description:
     "Analyze competitors based on the startup context. Produces a structured " +
     "competitive analysis with strengths, weaknesses, and opportunities.",
-  parameters: z.object({
+  inputSchema: z.object({
     startupContext: z
       .string()
       .describe("Startup name, product, and market description"),

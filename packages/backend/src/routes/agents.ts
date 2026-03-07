@@ -5,7 +5,7 @@ import { getTaskMetrics, getPendingAutomatableTasks } from "../services/task.ser
 import { enqueueTaskExecution } from "../queue/task.queue.js";
 import { AGENT_DISPLAY_NAMES } from "@onera/agents";
 import { prisma } from "@onera/database";
-import { createActivitySubscriber } from "../services/activity.service.js";
+import { createActivitySubscriber, type AgentEvent } from "../services/activity.service.js";
 
 export async function agentRoutes(app: FastifyInstance) {
   // List all agent statuses
@@ -72,8 +72,8 @@ export async function agentRoutes(app: FastifyInstance) {
             lines.push(
               `Tasks: ${metrics.pending} pending, ${metrics.inProgress} running, ${metrics.completed} done`
             );
-          } catch {
-            // ignore
+          } catch (err: any) {
+            console.warn("[agents] Failed to fetch task metrics:", err.message || err);
           }
         }
 
@@ -99,6 +99,53 @@ export async function agentRoutes(app: FastifyInstance) {
 
       // Send initial keepalive
       reply.raw.write(": connected\n\n");
+
+      // ── Replay recent events so the feed doesn't start empty ──
+      // Pull from execution logs + currently running tasks to build historical context.
+      try {
+        const recentLogs = await getRecentExecutionLogs(10);
+        const runningTasks = await prisma.task.findMany({
+          where: {
+            status: "IN_PROGRESS",
+            ...(projectId ? { projectId } : {}),
+          },
+          select: { id: true, title: true, agentName: true, projectId: true, updatedAt: true },
+          take: 5,
+        });
+
+        // Replay recent completed/failed logs
+        for (const log of recentLogs.slice().reverse()) {
+          const task = (log as { task?: { title?: string; projectId?: string } }).task;
+          if (projectId && task?.projectId && task.projectId !== projectId) continue;
+
+          const replayEvent: AgentEvent = {
+            type: log.status === "success" ? "completed" : "failed",
+            agentName: log.agentName,
+            taskId: log.taskId,
+            taskTitle: task?.title || "task",
+            projectId: projectId || "",
+            message: log.action,
+            timestamp: log.createdAt.toISOString(),
+          };
+          reply.raw.write(`data: ${JSON.stringify(replayEvent)}\n\n`);
+        }
+
+        // Show currently running tasks
+        for (const task of runningTasks) {
+          const runningEvent: AgentEvent = {
+            type: "started",
+            agentName: task.agentName || "unknown",
+            taskId: task.id,
+            taskTitle: task.title,
+            projectId: task.projectId,
+            message: `${task.agentName || "Agent"} running: ${task.title}`,
+            timestamp: task.updatedAt.toISOString(),
+          };
+          reply.raw.write(`data: ${JSON.stringify(runningEvent)}\n\n`);
+        }
+      } catch {
+        // Replay is best-effort — don't break the stream
+      }
 
       // Subscribe to Redis agent activity channel
       const { unsubscribe } = createActivitySubscriber((event) => {

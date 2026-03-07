@@ -7,7 +7,7 @@ export const summarizeContent = tool({
   description:
     "Summarize a piece of content (article, document, research). " +
     "Produces a concise summary with key takeaways.",
-  parameters: z.object({
+  inputSchema: z.object({
     content: z.string().describe("The content to summarize"),
     maxLength: z
       .enum(["short", "medium", "long"])

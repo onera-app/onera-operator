@@ -22,7 +22,7 @@
     "@onera/database": "workspace:*",
     "@onera/shared": "workspace:*",
     "@onera/tools": "workspace:*",
-    "ai": "^4.1.0",
+    "ai": "^6.0.0",
     "bullmq": "^5.30.0",
     "dodopayments": "^2.23.0",
     "dotenv": "^17.3.1",

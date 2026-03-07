@@ -15,7 +15,7 @@ export const webScraper = tool({
     "Fetch a web page URL and extract its text content. Handles JavaScript-rendered pages, " +
     "dynamic sites, and complex web apps. Use this to read websites, blog posts, " +
     "documentation, competitor pages, or any public URL.",
-  parameters: z.object({
+  inputSchema: z.object({
     url: z.string().describe("The URL to fetch (must be a valid http/https URL)"),
     maxLength: z
       .number()

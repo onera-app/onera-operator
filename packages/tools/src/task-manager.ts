@@ -137,7 +137,7 @@ export function createTaskManagerTools(context: TaskToolContext) {
   const listProjectTasks = tool({
     description:
       "List project tasks. Use this first if you need ids before editing tasks.",
-    parameters: z.object({
+    inputSchema: z.object({
       projectId: z.string().describe("The project ID. Use an empty string to auto-resolve from context."),
       status: z.enum([
         "PENDING", "IN_PROGRESS", "COMPLETED", "FAILED", "CANCELLED", "ALL",
@@ -185,7 +185,7 @@ export function createTaskManagerTools(context: TaskToolContext) {
   const createProjectTask = tool({
     description:
       "Create a new task for the project backlog with category, priority, and agent.",
-    parameters: z.object({
+    inputSchema: z.object({
       projectId: z.string().describe("The project ID. Use an empty string to auto-resolve from context."),
       title: z.string().min(3).describe("Task title (min 3 chars)."),
       description: z.string().min(8).describe("Task description (min 8 chars)."),
@@ -238,7 +238,7 @@ export function createTaskManagerTools(context: TaskToolContext) {
     description:
       "Update task fields. Set any field to its sentinel value to leave it unchanged: " +
       "empty string for text fields, 'UNCHANGED' for enums, -1 for automatable (treat as unchanged).",
-    parameters: z.object({
+    inputSchema: z.object({
       taskId: z.string().describe("The ID of the task to update."),
       title: z.string().describe("New title. Use an empty string to leave unchanged."),
       description: z.string().describe("New description. Use an empty string to leave unchanged."),
@@ -310,7 +310,7 @@ export function createTaskManagerTools(context: TaskToolContext) {
   const deleteProjectTask = tool({
     description:
       "Delete a task from backlog. Only use when user explicitly confirms deletion.",
-    parameters: z.object({
+    inputSchema: z.object({
       taskId: z.string(),
       confirm: z.boolean().describe("Must be true to proceed with deletion"),
     }),
@@ -331,7 +331,7 @@ export function createTaskManagerTools(context: TaskToolContext) {
       "Execute a task immediately by queuing it for its assigned agent. " +
       "The task must have an assigned agent and be in PENDING or FAILED status. " +
       "Use when the user says 'run this now', 'do this task', 'execute it', etc.",
-    parameters: z.object({
+    inputSchema: z.object({
       taskId: z.string().describe("The ID of the task to execute"),
     }),
     execute: async ({ taskId }) => {
