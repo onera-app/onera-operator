@@ -7,132 +7,219 @@ import {
   Sequence,
 } from "remotion";
 import { C } from "../colors";
-import { sansFont } from "../fonts";
+import { sansFont, monoFont } from "../fonts";
 
 /**
- * Scene 4 — Capabilities
+ * Scene 6 — Feature Beats (8s, 4 x 2s)
  *
- * Each capability gets its own beat. One word/phrase appears huge,
- * with a quiet descriptor below it. No cards, no icons.
- * Just kinetic typography on black — each replacing the last.
- *
- * Think: Apple "Shot on iPhone" or "M1" chip reveals.
+ * Each capability gets a dramatic reveal:
+ * Big number/stat on the left, feature description on the right.
+ * Animated counter for the stat. Clean two-column layout.
+ * No cards — just typography and a subtle colored accent line.
  */
 
-type Capability = {
-  word: string;
-  detail: string;
+type Feature = {
+  stat: string;
+  statLabel: string;
+  title: string;
+  description: string;
+  accentColor: string;
 };
 
-const CAPABILITIES: Capability[] = [
+const FEATURES: Feature[] = [
   {
-    word: "Outreach",
-    detail: "Finds leads. Writes emails. Sends them. Every day.",
+    stat: "20+",
+    statLabel: "leads per run",
+    title: "Cold Outreach on Autopilot",
+    description: "Finds leads, writes personalized emails, and sends them. Every single day.",
+    accentColor: C.violet,
   },
   {
-    word: "Social",
-    detail: "Posts on-brand content to Twitter. Consistently. Effortlessly.",
+    stat: "24/7",
+    statLabel: "content pipeline",
+    title: "Social That Never Stops",
+    description: "Writes, schedules, and posts on-brand content to Twitter. Zero effort.",
+    accentColor: C.termCyan,
   },
   {
-    word: "Research",
-    detail: "Monitors competitors, markets, and trends in real time.",
+    stat: "Live",
+    statLabel: "market intel",
+    title: "Competitive Research in Real Time",
+    description: "Monitors competitors, pricing changes, feature launches, and market shifts.",
+    accentColor: C.amber,
   },
   {
-    word: "Planning",
-    detail: "Coordinates every agent. Prioritizes what matters.",
+    stat: "1-Click",
+    statLabel: "orchestration",
+    title: "One Command Runs Everything",
+    description: "The Planner coordinates all agents. Prioritizes what matters. You just watch.",
+    accentColor: C.blueBright,
   },
 ];
 
-const CapabilityBeat = ({ cap }: { cap: Capability }) => {
+const FeatureBeat = ({ feature }: { feature: Feature }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
-  // Big word entrance
-  const wordOpacity = interpolate(frame, [0.1 * fps, 0.7 * fps], [0, 1], {
-    extrapolateLeft: "clamp",
-    extrapolateRight: "clamp",
-    easing: Easing.out(Easing.quad),
-  });
-  const wordY = interpolate(frame, [0.1 * fps, 0.7 * fps], [40, 0], {
+  // Accent line
+  const lineH = interpolate(frame, [0.1 * fps, 0.6 * fps], [0, 120], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
     easing: Easing.out(Easing.quad),
   });
 
-  // Detail line
-  const detailOpacity = interpolate(frame, [0.6 * fps, 1.2 * fps], [0, 1], {
+  // Stat
+  const statOpacity = interpolate(frame, [0.15 * fps, 0.6 * fps], [0, 1], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
     easing: Easing.out(Easing.quad),
   });
-  const detailY = interpolate(frame, [0.6 * fps, 1.2 * fps], [14, 0], {
+  const statY = interpolate(frame, [0.15 * fps, 0.6 * fps], [30, 0], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+    easing: Easing.out(Easing.quad),
+  });
+
+  // Title
+  const titleOpacity = interpolate(frame, [0.3 * fps, 0.8 * fps], [0, 1], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+    easing: Easing.out(Easing.quad),
+  });
+  const titleY = interpolate(frame, [0.3 * fps, 0.8 * fps], [20, 0], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+    easing: Easing.out(Easing.quad),
+  });
+
+  // Description
+  const descOpacity = interpolate(frame, [0.6 * fps, 1.1 * fps], [0, 1], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
     easing: Easing.out(Easing.quad),
   });
 
   return (
-    <AbsoluteFill
-      style={{
-        backgroundColor: C.black,
-        justifyContent: "center",
-        alignItems: "center",
-      }}
-    >
-      <div
+    <AbsoluteFill style={{ backgroundColor: C.darkBg }}>
+      <AbsoluteFill
         style={{
-          display: "flex",
-          flexDirection: "column",
+          justifyContent: "center",
           alignItems: "center",
-          gap: 20,
+          padding: "0 160px",
         }}
       >
         <div
           style={{
-            fontFamily: sansFont,
-            fontSize: 100,
-            fontWeight: 700,
-            color: C.white,
-            letterSpacing: "-0.03em",
-            opacity: wordOpacity,
-            transform: `translateY(${wordY}px)`,
+            display: "flex",
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 80,
+            width: "100%",
           }}
         >
-          {cap.word}
+          {/* Left: Stat */}
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 24,
+              flexShrink: 0,
+            }}
+          >
+            {/* Accent line */}
+            <div
+              style={{
+                width: 3,
+                height: lineH,
+                backgroundColor: feature.accentColor,
+                borderRadius: 2,
+                boxShadow: `0 0 20px ${feature.accentColor}60`,
+              }}
+            />
+            <div
+              style={{
+                opacity: statOpacity,
+                transform: `translateY(${statY}px)`,
+              }}
+            >
+              <div
+                style={{
+                  fontFamily: sansFont,
+                  fontSize: 80,
+                  fontWeight: 700,
+                  color: C.white,
+                  letterSpacing: "-0.03em",
+                  lineHeight: 1,
+                }}
+              >
+                {feature.stat}
+              </div>
+              <div
+                style={{
+                  fontFamily: monoFont,
+                  fontSize: 14,
+                  color: feature.accentColor,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.08em",
+                  marginTop: 8,
+                }}
+              >
+                {feature.statLabel}
+              </div>
+            </div>
+          </div>
+
+          {/* Right: Text */}
+          <div style={{ flex: 1 }}>
+            <div
+              style={{
+                fontFamily: sansFont,
+                fontSize: 40,
+                fontWeight: 600,
+                color: C.white,
+                letterSpacing: "-0.01em",
+                lineHeight: 1.2,
+                opacity: titleOpacity,
+                transform: `translateY(${titleY}px)`,
+                marginBottom: 14,
+              }}
+            >
+              {feature.title}
+            </div>
+            <div
+              style={{
+                fontFamily: sansFont,
+                fontSize: 20,
+                fontWeight: 400,
+                color: C.gray,
+                lineHeight: 1.5,
+                opacity: descOpacity,
+                maxWidth: 500,
+              }}
+            >
+              {feature.description}
+            </div>
+          </div>
         </div>
-        <div
-          style={{
-            fontFamily: sansFont,
-            fontSize: 26,
-            fontWeight: 400,
-            color: C.gray,
-            textAlign: "center",
-            maxWidth: 650,
-            lineHeight: 1.4,
-            opacity: detailOpacity,
-            transform: `translateY(${detailY}px)`,
-          }}
-        >
-          {cap.detail}
-        </div>
-      </div>
+      </AbsoluteFill>
     </AbsoluteFill>
   );
 };
 
 export const FeaturesScene = () => {
   const { fps } = useVideoConfig();
-  const beatDuration = Math.round(2.5 * fps); // 2.5s per capability
+  const beatDuration = 2 * fps; // 2s per feature
 
   return (
     <AbsoluteFill>
-      {CAPABILITIES.map((cap, i) => (
+      {FEATURES.map((feature, i) => (
         <Sequence
           key={i}
           from={i * beatDuration}
           durationInFrames={beatDuration}
         >
-          <CapabilityBeat cap={cap} />
+          <FeatureBeat feature={feature} />
         </Sequence>
       ))}
     </AbsoluteFill>

@@ -6,102 +6,185 @@ import {
   Easing,
 } from "remotion";
 import { C } from "../colors";
-import { sansFont } from "../fonts";
+import { sansFont, monoFont } from "../fonts";
+import { GlowOrb } from "../components/GlowOrb";
 
 /**
- * Scene 1 — Logo Reveal
+ * Scene 1 — Cinematic Logo Reveal (5s)
  *
- * Pure black. A thin horizontal line draws across center.
- * The word "onera" fades up through it — large, light, confident.
- * Then the tagline appears below, small and gray.
- *
- * Think: Apple Watch reveal, or a YC Demo Day title card.
+ * Dark background with ambient gradient orbs drifting.
+ * A horizontal line draws across center.
+ * "onera" scales up from behind a glow.
+ * Tagline and badge appear below.
  */
 export const LogoReveal = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
-  // --- Line draws from center outward (0 → 160px half-width) ---
-  const lineProgress = interpolate(frame, [0.4 * fps, 1.4 * fps], [0, 1], {
-    extrapolateLeft: "clamp",
-    extrapolateRight: "clamp",
-    easing: Easing.out(Easing.quad),
-  });
-  const lineHalfWidth = lineProgress * 160;
-
-  // --- Logo "onera" fades up ---
-  const logoOpacity = interpolate(frame, [0.8 * fps, 1.8 * fps], [0, 1], {
-    extrapolateLeft: "clamp",
-    extrapolateRight: "clamp",
-    easing: Easing.out(Easing.quad),
-  });
-  const logoY = interpolate(frame, [0.8 * fps, 1.8 * fps], [24, 0], {
+  // --- Horizontal line ---
+  const lineProgress = interpolate(frame, [0.5 * fps, 1.5 * fps], [0, 1], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
     easing: Easing.out(Easing.quad),
   });
 
-  // --- Tagline fades in ---
+  // --- Wordmark ---
+  const logoOpacity = interpolate(frame, [0.8 * fps, 1.6 * fps], [0, 1], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+    easing: Easing.out(Easing.quad),
+  });
+  const logoScale = interpolate(frame, [0.8 * fps, 1.6 * fps], [0.85, 1], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+    easing: Easing.out(Easing.quad),
+  });
+
+  // --- Glow behind logo ---
+  const glowOpacity = interpolate(frame, [0.3 * fps, 1.2 * fps], [0, 0.8], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+  });
+  const glowScale = interpolate(frame, [0.3 * fps, 2.5 * fps], [0.5, 1.2], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+    easing: Easing.out(Easing.quad),
+  });
+
+  // --- Tagline ---
   const tagOpacity = interpolate(frame, [2.0 * fps, 2.8 * fps], [0, 1], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
     easing: Easing.out(Easing.quad),
   });
-  const tagY = interpolate(frame, [2.0 * fps, 2.8 * fps], [12, 0], {
+  const tagY = interpolate(frame, [2.0 * fps, 2.8 * fps], [16, 0], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+    easing: Easing.out(Easing.quad),
+  });
+
+  // --- Badge ---
+  const badgeOpacity = interpolate(frame, [2.8 * fps, 3.5 * fps], [0, 1], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
     easing: Easing.out(Easing.quad),
   });
 
   return (
-    <AbsoluteFill
-      style={{
-        backgroundColor: C.black,
-        justifyContent: "center",
-        alignItems: "center",
-      }}
-    >
-      {/* Wordmark */}
-      <div
-        style={{
-          fontFamily: sansFont,
-          fontSize: 96,
-          fontWeight: 600,
-          color: C.white,
-          letterSpacing: "-0.03em",
-          opacity: logoOpacity,
-          transform: `translateY(${logoY}px)`,
-        }}
-      >
-        onera
-      </div>
+    <AbsoluteFill style={{ backgroundColor: C.darkBg }}>
+      {/* Ambient orbs */}
+      <GlowOrb color1={C.blueGlow} color2="transparent" size={800} x={35} y={40} delay={0} drift={20} />
+      <GlowOrb color1={C.violetGlow} color2="transparent" size={500} x={65} y={55} delay={10} drift={15} />
 
-      {/* Thin line */}
+      {/* Center glow behind logo */}
       <div
         style={{
-          width: lineHalfWidth * 2,
-          height: 1,
-          backgroundColor: C.faintWhite,
-          marginTop: 28,
-          marginBottom: 28,
+          position: "absolute",
+          left: "50%",
+          top: "46%",
+          width: 400,
+          height: 400,
+          borderRadius: "50%",
+          background: `radial-gradient(circle, ${C.blueGlow} 0%, transparent 70%)`,
+          transform: `translate(-50%, -50%) scale(${glowScale})`,
+          opacity: glowOpacity,
+          filter: "blur(60px)",
         }}
       />
 
-      {/* Tagline */}
-      <div
+      {/* Content */}
+      <AbsoluteFill
         style={{
-          fontFamily: sansFont,
-          fontSize: 20,
-          fontWeight: 400,
-          color: C.gray,
-          letterSpacing: "0.12em",
-          textTransform: "uppercase",
-          opacity: tagOpacity,
-          transform: `translateY(${tagY}px)`,
+          justifyContent: "center",
+          alignItems: "center",
         }}
       >
-        The Autonomous Startup Operator
-      </div>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: 0,
+          }}
+        >
+          {/* Wordmark */}
+          <div
+            style={{
+              fontFamily: sansFont,
+              fontSize: 110,
+              fontWeight: 700,
+              color: C.white,
+              letterSpacing: "-0.04em",
+              opacity: logoOpacity,
+              transform: `scale(${logoScale})`,
+            }}
+          >
+            onera
+          </div>
+
+          {/* Line */}
+          <div
+            style={{
+              width: lineProgress * 260,
+              height: 1,
+              background: `linear-gradient(90deg, transparent, ${C.blueBright}, transparent)`,
+              marginTop: 16,
+              marginBottom: 20,
+            }}
+          />
+
+          {/* Tagline */}
+          <div
+            style={{
+              fontFamily: sansFont,
+              fontSize: 22,
+              fontWeight: 400,
+              color: C.gray,
+              letterSpacing: "0.08em",
+              textTransform: "uppercase",
+              opacity: tagOpacity,
+              transform: `translateY(${tagY}px)`,
+            }}
+          >
+            The Autonomous Startup Operator
+          </div>
+
+          {/* Badge pill */}
+          <div
+            style={{
+              marginTop: 24,
+              padding: "8px 20px",
+              borderRadius: 100,
+              border: `1px solid ${C.cardBorder}`,
+              backgroundColor: C.cardBg,
+              opacity: badgeOpacity,
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+            }}
+          >
+            <div
+              style={{
+                width: 6,
+                height: 6,
+                borderRadius: "50%",
+                backgroundColor: C.termGreen,
+                boxShadow: `0 0 8px ${C.termGreen}`,
+              }}
+            />
+            <div
+              style={{
+                fontFamily: monoFont,
+                fontSize: 12,
+                color: C.dimWhite,
+                letterSpacing: "0.04em",
+              }}
+            >
+              Open Source AI Operator
+            </div>
+          </div>
+        </div>
+      </AbsoluteFill>
     </AbsoluteFill>
   );
 };
