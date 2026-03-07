@@ -74,7 +74,7 @@ jobs:
       - name: Apply database migrations
         run: |
           pnpm install --frozen-lockfile
-          pnpm --filter @onera/database exec prisma db push --skip-generate
+          pnpm --filter @onera/database exec prisma db push --skip-generate --accept-data-loss
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
