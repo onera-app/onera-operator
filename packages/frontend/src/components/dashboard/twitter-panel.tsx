@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { Badge } from "@/components/ui/badge";
 import { api, type EmailLogEntry } from "@/lib/api-client";
 import { formatRelativeTime } from "@/lib/utils";
@@ -28,6 +28,8 @@ export function TwitterPanel({ projectId }: TwitterPanelProps) {
   const [emails, setEmails] = useState<ParsedEmail[]>([]);
   const [twitterTaskCount, setTwitterTaskCount] = useState(0);
   const [outreachTaskCount, setOutreachTaskCount] = useState(0);
+  const seenEmailIds = useRef<Set<string>>(new Set());
+  const [newEmailIds, setNewEmailIds] = useState<Set<string>>(new Set());
 
   const fetchData = useCallback(async () => {
     try {
@@ -63,6 +65,25 @@ export function TwitterPanel({ projectId }: TwitterPanelProps) {
         sentAt: e.sentAt,
       }));
       setEmails(parsedEmails);
+
+      // Track newly arrived emails for highlight animation
+      const incoming = new Set<string>();
+      for (const e of parsedEmails) {
+        if (!seenEmailIds.current.has(e.id)) {
+          incoming.add(e.id);
+          seenEmailIds.current.add(e.id);
+        }
+      }
+      if (incoming.size > 0) {
+        setNewEmailIds((prev) => new Set([...prev, ...incoming]));
+        setTimeout(() => {
+          setNewEmailIds((prev) => {
+            const next = new Set(prev);
+            for (const id of incoming) next.delete(id);
+            return next;
+          });
+        }, 1800);
+      }
     } catch (err) {
       console.error("Failed to fetch activity data:", err);
     }
@@ -133,8 +154,8 @@ export function TwitterPanel({ projectId }: TwitterPanelProps) {
       >
         {emails.length > 0 ? (
           <div className="space-y-0">
-            {emails.slice(0, 10).map((email) => (
-              <EmailCard key={email.id} email={email} projectId={projectId} />
+            {emails.slice(0, 5).map((email) => (
+              <EmailCard key={email.id} email={email} projectId={projectId} isNew={newEmailIds.has(email.id)} />
             ))}
           </div>
         ) : (
@@ -163,7 +184,7 @@ const STATUS_BADGE: Record<string, string> = {
   BLOCKED: "text-yellow-600 bg-yellow-50 border-yellow-200",
 };
 
-function EmailCard({ email, projectId }: { email: ParsedEmail; projectId: string }) {
+function EmailCard({ email, projectId, isNew }: { email: ParsedEmail; projectId: string; isNew?: boolean }) {
   const [expanded, setExpanded] = useState(false);
   const [body, setBody] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -184,7 +205,7 @@ function EmailCard({ email, projectId }: { email: ParsedEmail; projectId: string
 
   return (
     <div
-      className="py-2.5 border-b border-dashed border-border/50 last:border-0 cursor-pointer"
+      className={`py-2.5 border-b border-dashed border-border/50 last:border-0 cursor-pointer rounded-sm ${isNew ? "animate-email-appear" : ""}`}
       onClick={handleToggle}
     >
       <div className="flex items-start gap-2 text-xs">

@@ -413,6 +413,33 @@ function SocialColumn({
   emails: PublicEmail[];
   stats?: PublicLiveData["stats"];
 }) {
+  // Track which email IDs have already been seen to animate newly added ones
+  const seenEmailIds = useRef<Set<string>>(new Set());
+  const [newEmailIds, setNewEmailIds] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    const incoming = new Set<string>();
+    for (const email of emails) {
+      const id = email.sentAt; // use sentAt as stable key (no explicit id on PublicEmail)
+      if (!seenEmailIds.current.has(id)) {
+        incoming.add(id);
+        seenEmailIds.current.add(id);
+      }
+    }
+    if (incoming.size > 0) {
+      setNewEmailIds((prev) => new Set([...prev, ...incoming]));
+      // Clear highlight after animation completes (1.8s)
+      const timer = setTimeout(() => {
+        setNewEmailIds((prev) => {
+          const next = new Set(prev);
+          for (const id of incoming) next.delete(id);
+          return next;
+        });
+      }, 1800);
+      return () => clearTimeout(timer);
+    }
+  }, [emails]);
+
   return (
     <div className="space-y-5">
       {/* Twitter */}
@@ -463,21 +490,25 @@ function SocialColumn({
       >
         {emails.length > 0 ? (
           <div className="space-y-0">
-            {emails.map((email, i) => (
-              <div
-                key={i}
-                className="flex items-start gap-2 text-xs py-2.5 border-b border-dashed border-border/50 last:border-0"
-              >
-                <span className="text-primary font-bold shrink-0 mt-0.5">&rarr;</span>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-semibold truncate">{email.subject}</p>
-                  <p className="text-[10px] text-muted-foreground truncate">To: {email.to}</p>
+            {emails.map((email, i) => {
+              const emailKey = email.sentAt;
+              const isNew = newEmailIds.has(emailKey);
+              return (
+                <div
+                  key={i}
+                  className={`flex items-start gap-2 text-xs py-2.5 border-b border-dashed border-border/50 last:border-0 rounded-sm ${isNew ? "animate-email-appear" : ""}`}
+                >
+                  <span className="text-primary font-bold shrink-0 mt-0.5">&rarr;</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold truncate">{email.subject}</p>
+                    <p className="text-[10px] text-muted-foreground truncate">To: {email.to}</p>
+                  </div>
+                  <span className="text-[10px] text-muted-foreground shrink-0">
+                    {formatRelativeTime(email.sentAt)}
+                  </span>
                 </div>
-                <span className="text-[10px] text-muted-foreground shrink-0">
-                  {formatRelativeTime(email.sentAt)}
-                </span>
-              </div>
-            ))}
+              );
+            })}
           </div>
         ) : (
           <div className="border border-dashed border-border p-4 text-center">

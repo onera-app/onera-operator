@@ -144,8 +144,8 @@ async function _getPublicLiveDataUncached() {
           });
         }
       }
-    } catch {
-      // skip
+    } catch (err: any) {
+      console.warn(`[public] Failed to parse task result for task ${task.id}:`, err.message || err);
     }
   }
 
@@ -172,8 +172,8 @@ async function _getPublicLiveDataUncached() {
   return {
     agents,
     tasks: safeTasks,
-    tweets: tweets.slice(0, 10),
-    emails: emails.slice(0, 10),
+    tweets: tweets.slice(0, 5),
+    emails: emails.slice(0, 5),
     terminalLines,
     stats: {
       totalTasksCompleted: totalTasks,

@@ -175,3 +175,23 @@
   pointer-events: none;
   z-index: 0;
 }
+
+/* Email item appear + highlight animation */
+@keyframes email-appear {
+  0% {
+    opacity: 0;
+    transform: translateY(-6px);
+    background-color: hsl(226 100% 40% / 0.12);
+  }
+  30% {
+    opacity: 1;
+    transform: translateY(0);
+    background-color: hsl(226 100% 40% / 0.12);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+.animate-email-appear {
+  animation: email-appear 1.8s ease-out forwards;
+}
