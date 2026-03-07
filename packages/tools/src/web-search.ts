@@ -3,39 +3,26 @@ import { z } from "zod";
 import { getModel } from "@onera/ai";
 import { generateText } from "ai";
 
-/**
- * Exa search result shape
- */
-interface ExaResult {
+interface SearchResult {
   title: string;
   url: string;
-  publishedDate?: string | null;
-  author?: string | null;
-  text?: string;
-  highlights?: string[];
-  summary?: string;
-}
-
-interface ExaSearchResponse {
-  requestId: string;
-  results: ExaResult[];
+  snippet: string;
 }
 
 /**
- * Web search tool — uses Exa Search API for high-quality web results.
+ * Web search tool — searches the web using Serper (Google Search API).
  *
- * Exa provides embeddings-based search with optional content extraction,
- * which is significantly better than traditional keyword search for
- * startup research, competitor analysis, and lead generation.
+ * Priority:
+ *   1. Serper (Google results via SERPER_API_KEY) — fast, reliable, no rate limits at scale
+ *   2. DuckDuckGo Lite HTML scraping — free fallback when Serper key is exhausted or unset
+ *   3. LLM knowledge — last resort when both live search options fail
  *
- * Falls back to LLM knowledge when EXA_API_KEY is not set.
- *
- * Set EXA_API_KEY in .env to enable.
+ * Used by agents for startup research, competitor analysis, lead generation.
  */
 export const webSearch = tool({
   description:
     "Search the web for current information about a topic. Returns a list of relevant results with titles, URLs, and content snippets.",
-  parameters: z.object({
+  inputSchema: z.object({
     query: z.string().describe("The search query"),
     maxResults: z
       .number()
@@ -57,61 +44,36 @@ export const webSearch = tool({
   }),
   execute: async ({ query, maxResults, category: rawCategory }) => {
     const category = rawCategory === "none" ? undefined : rawCategory;
-    const exaKey = process.env.EXA_API_KEY;
 
-    // If Exa API key is available, use it
-    if (exaKey) {
+    // Enhance query with category context for better results
+    const searchQuery = category ? `${query} ${category}` : query;
+
+    // 1. Try Serper (Google Search API) if key is available
+    const serperKey = process.env.SERPER_API_KEY;
+    if (serperKey) {
       try {
-        const body: Record<string, unknown> = {
-          query,
-          numResults: maxResults,
-          type: "auto",
-          contents: {
-            highlights: {
-              maxCharacters: 3000,
-            },
-            summary: {
-              query: "Main points and key information",
-            },
-          },
-        };
-
-        if (category) {
-          body.category = category;
+        const results = await searchSerper(searchQuery, maxResults, serperKey);
+        if (results.length > 0) {
+          return { query, results, source: "serper" };
         }
-
-        const res = await fetch("https://api.exa.ai/search", {
-          method: "POST",
-          headers: {
-            "x-api-key": exaKey,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(body),
-        });
-
-        if (res.ok) {
-          const data = (await res.json()) as ExaSearchResponse;
-          const results = (data.results || []).map((r) => ({
-            title: r.title || "",
-            url: r.url || "",
-            snippet: r.summary || (r.highlights || []).join(" ") || "",
-            publishedDate: r.publishedDate || null,
-            author: r.author || null,
-          }));
-          return { query, results, source: "exa" };
-        }
-
-        // Log the error but fall through to fallback
-        const errorText = await res.text();
-        console.warn(
-          `[webSearch] Exa API returned ${res.status}: ${errorText}`
-        );
+        console.warn("[webSearch] Serper returned no results, falling back to DuckDuckGo");
       } catch (err) {
-        console.warn("[webSearch] Exa API failed, falling back to LLM:", err);
+        console.warn("[webSearch] Serper search failed:", err instanceof Error ? err.message : err, "— falling back to DuckDuckGo");
       }
     }
 
-    // Fallback: use LLM knowledge to provide search-like results
+    // 2. Fallback: DuckDuckGo Lite HTML scraping (no API key required)
+    try {
+      const results = await searchDuckDuckGo(searchQuery, maxResults);
+      if (results.length > 0) {
+        return { query, results, source: "duckduckgo" };
+      }
+      console.warn("[webSearch] DuckDuckGo returned no results, falling back to LLM");
+    } catch (err) {
+      console.warn("[webSearch] DuckDuckGo search failed:", err instanceof Error ? err.message : err);
+    }
+
+    // 3. Last resort: LLM knowledge
     try {
       const model = getModel();
       const { text } = await generateText({
@@ -124,11 +86,7 @@ export const webSearch = tool({
       });
 
       try {
-        const results = JSON.parse(text) as Array<{
-          title: string;
-          url: string;
-          snippet: string;
-        }>;
+        const results = JSON.parse(text) as SearchResult[];
         return {
           query,
           results: Array.isArray(results) ? results.slice(0, maxResults) : [],
@@ -142,12 +100,160 @@ export const webSearch = tool({
         };
       }
     } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error("[webSearch] LLM fallback also failed:", message);
       return {
         query,
         results: [],
         source: "error",
-        message: `Search failed: ${err instanceof Error ? err.message : String(err)}`,
+        message: `Search failed: ${message}`,
       };
     }
   },
 });
+
+/**
+ * Search via Serper.dev (Google Search API).
+ * Docs: https://serper.dev/api-reference
+ */
+async function searchSerper(query: string, maxResults: number, apiKey: string): Promise<SearchResult[]> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 10000);
+
+  try {
+    const res = await fetch("https://google.serper.dev/search", {
+      method: "POST",
+      signal: controller.signal,
+      headers: {
+        "X-API-KEY": apiKey,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ q: query, num: maxResults }),
+    });
+
+    clearTimeout(timeout);
+
+    if (!res.ok) {
+      throw new Error(`Serper returned HTTP ${res.status}`);
+    }
+
+    const data = await res.json() as {
+      organic?: Array<{ title: string; link: string; snippet?: string }>;
+    };
+
+    return (data.organic ?? []).slice(0, maxResults).map((r) => ({
+      title: r.title,
+      url: r.link,
+      snippet: r.snippet ?? "",
+    }));
+  } catch (err) {
+    clearTimeout(timeout);
+    throw err;
+  }
+}
+
+/**
+ * Search DuckDuckGo via its lite HTML endpoint (no API key required).
+ * Uses the lite version which works reliably without bot detection.
+ * Parses result-link, result-snippet from the table-based HTML.
+ */
+async function searchDuckDuckGo(query: string, maxResults: number): Promise<SearchResult[]> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 10000);
+
+  try {
+    const url = `https://lite.duckduckgo.com/lite/?q=${encodeURIComponent(query)}`;
+    const res = await fetch(url, {
+      signal: controller.signal,
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+        Accept: "text/html,application/xhtml+xml",
+        "Accept-Language": "en-US,en;q=0.9",
+      },
+    });
+
+    clearTimeout(timeout);
+
+    if (!res.ok) {
+      throw new Error(`DuckDuckGo returned HTTP ${res.status}`);
+    }
+
+    const html = await res.text();
+    return parseDuckDuckGoLite(html, maxResults);
+  } catch (err) {
+    clearTimeout(timeout);
+    throw err;
+  }
+}
+
+/**
+ * Parse DuckDuckGo Lite results page.
+ *
+ * Structure (table-based):
+ *   <a class='result-link' href="//duckduckgo.com/l/?uddg=ENCODED_URL">Title</a>
+ *   <td class='result-snippet'>Snippet text with <b>bold</b> highlights</td>
+ */
+function parseDuckDuckGoLite(html: string, maxResults: number): SearchResult[] {
+  const results: SearchResult[] = [];
+
+  // Extract all result-link anchors
+  // DDG lite format: <a rel="nofollow" href="..." class='result-link'>Title</a>
+  // href comes BEFORE class in the actual HTML
+  const linkRegex = /<a\s[^>]*href="([^"]+)"[^>]*class='result-link'[^>]*>([\s\S]*?)<\/a>/g;
+  const snippetRegex = /class='result-snippet'[^>]*>([\s\S]*?)<\/td>/g;
+
+  const links: Array<{ url: string; title: string }> = [];
+  let match;
+
+  while ((match = linkRegex.exec(html)) !== null) {
+    let href = match[1];
+    const title = decodeHtmlEntities(match[2].replace(/<[^>]+>/g, "").trim());
+
+    // Decode DuckDuckGo redirect URL
+    if (href.includes("uddg=")) {
+      const uddgMatch = href.match(/uddg=([^&]+)/);
+      if (uddgMatch) {
+        href = decodeURIComponent(uddgMatch[1]);
+      }
+    }
+    if (href && !href.startsWith("http")) {
+      href = `https:${href}`;
+    }
+
+    if (title && href.startsWith("http")) {
+      links.push({ url: href, title });
+    }
+  }
+
+  // Extract all snippets
+  const snippets: string[] = [];
+  while ((match = snippetRegex.exec(html)) !== null) {
+    snippets.push(
+      decodeHtmlEntities(match[1].replace(/<[^>]+>/g, "").trim())
+    );
+  }
+
+  // Combine links + snippets
+  for (let i = 0; i < Math.min(links.length, maxResults); i++) {
+    results.push({
+      title: links[i].title,
+      url: links[i].url,
+      snippet: snippets[i] || "",
+    });
+  }
+
+  return results;
+}
+
+function decodeHtmlEntities(text: string): string {
+  return text
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&#\d+;/g, " ")
+    .replace(/&\w+;/g, " ");
+}
