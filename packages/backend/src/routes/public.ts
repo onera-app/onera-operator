@@ -4,12 +4,8 @@ import {
   answerPublicQuestion,
   checkAskRateLimit,
 } from "../services/public.service.js";
-import {
-  createActivitySubscriber,
-  publishAgentEvent,
-} from "../services/activity.service.js";
+import { createActivitySubscriber } from "../services/activity.service.js";
 import { getRecentExecutionLogs } from "../services/execution.service.js";
-import { prisma } from "@onera/database";
 
 export async function publicRoutes(app: FastifyInstance) {
   // CORS preflight for POST /api/public/ask
@@ -41,43 +37,22 @@ export async function publicRoutes(app: FastifyInstance) {
 
     reply.raw.write(": connected\n\n");
 
-    // ── Historical replay (redacted) so the feed is never empty ──
+    // ── Replay last 5 events so the feed isn't empty on first visit ──
     try {
-      const recentLogs = await getRecentExecutionLogs(10);
-      const runningTasks = await prisma.task.findMany({
-        where: { status: "IN_PROGRESS" },
-        select: { id: true, title: true, agentName: true, updatedAt: true },
-        take: 5,
-      });
-
-      // Replay recent completed/failed logs (oldest first)
+      const recentLogs = await getRecentExecutionLogs(5);
       for (const log of recentLogs.slice().reverse()) {
         const task = (log as { task?: { title?: string } }).task;
-        const replayEvent = {
+        reply.raw.write(`data: ${JSON.stringify({
           type: log.status === "success" ? "completed" : "failed",
           agentName: log.agentName,
           taskTitle: task?.title || "task",
           message: log.action,
           narrative: log.action,
           timestamp: log.createdAt.toISOString(),
-        };
-        reply.raw.write(`data: ${JSON.stringify(replayEvent)}\n\n`);
-      }
-
-      // Show currently running tasks
-      for (const task of runningTasks) {
-        const runningEvent = {
-          type: "started",
-          agentName: task.agentName || "unknown",
-          taskTitle: task.title,
-          message: `${task.agentName || "Agent"} running: ${task.title}`,
-          narrative: `${task.agentName || "Agent"} is working on: ${task.title}`,
-          timestamp: task.updatedAt.toISOString(),
-        };
-        reply.raw.write(`data: ${JSON.stringify(runningEvent)}\n\n`);
+        })}\n\n`);
       }
     } catch {
-      // Replay is best-effort — don't break the stream
+      // best-effort — don't break the stream
     }
 
     const { unsubscribe } = createActivitySubscriber((event) => {
@@ -101,26 +76,6 @@ export async function publicRoutes(app: FastifyInstance) {
       clearInterval(keepalive);
       unsubscribe();
     });
-  });
-
-  // ── Debug: emit a test event to verify SSE pipeline ──────────────
-  // POST /api/public/test-event — fires a synthetic agent event through Redis.
-  // Use: curl -X POST http://localhost:3001/api/public/test-event
-  app.post("/api/public/test-event", async (_request, reply) => {
-    reply.header("Access-Control-Allow-Origin", "*");
-    try {
-      publishAgentEvent({
-        type: "info",
-        agentName: "system",
-        taskId: "test-" + Date.now(),
-        taskTitle: "Pipeline Test",
-        projectId: "test",
-        message: `Test event at ${new Date().toLocaleTimeString()} — if you see this in the live feed, Redis pub/sub is working.`,
-      });
-      return reply.send({ ok: true, message: "Test event published to Redis" });
-    } catch (err: any) {
-      return reply.status(500).send({ ok: false, error: err.message || String(err) });
-    }
   });
 
   app.post("/api/public/ask", async (request, reply) => {
