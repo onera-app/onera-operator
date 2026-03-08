@@ -1,21 +1,20 @@
-import { loadFont as loadInter } from "@remotion/google-fonts/Inter";
-import { loadFont as loadJetBrainsMono } from "@remotion/google-fonts/JetBrainsMono";
-import { loadFont as loadPlatypi } from "@remotion/google-fonts/Platypi";
+import { loadFont as loadGeist } from "@remotion/google-fonts/Geist";
+import { loadFont as loadGeistMono } from "@remotion/google-fonts/GeistMono";
 
-// Blueprint aesthetic: Clean sans for body, serif for titles, mono for labels/annotations
+// Apple-like aesthetic: Geist (SF Pro vibes) for all text, Geist Mono for code/labels
 
-export const { fontFamily: sansFont } = loadInter("normal", {
+export const { fontFamily: sansFont } = loadGeist("normal", {
   weights: ["400", "500", "600", "700", "800", "900"],
   subsets: ["latin"],
 });
 
-export const { fontFamily: monoFont } = loadJetBrainsMono("normal", {
+export const { fontFamily: monoFont } = loadGeistMono("normal", {
   weights: ["400", "500", "700"],
   subsets: ["latin"],
 });
 
-// Platypi — a geometric serif that feels technical/architectural
-export const { fontFamily: serifFont } = loadPlatypi("normal", {
-  weights: ["400", "600", "700", "800"],
+// serifFont alias → Geist (Apple doesn't use serifs; clean geometric sans everywhere)
+export const { fontFamily: serifFont } = loadGeist("normal", {
+  weights: ["400", "500", "600", "700", "800", "900"],
   subsets: ["latin"],
 });

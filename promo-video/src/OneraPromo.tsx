@@ -14,15 +14,15 @@ export const OneraPromo = () => {
   const { fps } = useVideoConfig();
   const fadeDur = Math.round(0.5 * fps);
 
-  // Audio total duration: ~112.61s = ~3378 frames @ 30fps
-  // Distributed to match voiceover pacing:
-  const d1 = 760;  // The Grind (~25.3s)
-  const d2 = 630;  // Breaking Point (~21s)
-  const d3 = 570;  // The Shift (~19s)
-  const d4 = 630;  // Onera Operator (~21s)
-  const d5 = 400;  // Dashboard (~13.3s)
-  const d6 = 388;  // CTA (~12.9s)
-  // Total = 3378
+  // Audio total duration: ~103.2s = ~3096 frames @ 30fps (1.2x speed ElevenLabs)
+  // Distributed proportionally to match voiceover pacing:
+  const d1 = 697;  // The Grind (~23.2s)
+  const d2 = 577;  // Breaking Point (~19.2s)
+  const d3 = 522;  // The Shift (~17.4s)
+  const d4 = 577;  // Onera Operator (~19.2s)
+  const d5 = 367;  // Dashboard (~12.2s)
+  const d6 = 356;  // CTA (~11.9s)
+  // Total = 3096
 
   return (
     <AbsoluteFill style={{ backgroundColor: C.bg }}>
