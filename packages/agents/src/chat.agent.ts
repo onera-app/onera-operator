@@ -7,26 +7,17 @@ import { getModelForAgent } from "@onera/ai";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type StreamChatResult = ReturnType<typeof streamText<any, any>>;
 import {
-  generateTweet,
-  scheduleTweet,
-  generateEmail,
-  sendEmail,
-  competitorResearch,
-  findLeads,
-  webSearch,
-  webScraper,
-  summarizeContent,
-  researchCompanyUrl,
-  executeCode,
   createTaskManagerTools,
-  notifyFounder,
+  webSearch,
 } from "@onera/tools";
 
 /**
  * Chat Agent
  *
- * Interactive agent used for the dashboard chat interface.
- * Has access to all tools so the user can ask it to perform any operation.
+ * Dashboard chat: a quick helping hand for the founder.
+ * Does NOT execute tasks directly. Instead, creates tasks assigned to
+ * the appropriate agent (planner, twitter, outreach, research, engineer)
+ * so they go through the normal task queue.
  */
 export function streamChatAgent(
   messages: ModelMessage[],
@@ -48,47 +39,27 @@ export function streamChatAgent(
     system:
       "You are Onera Operator, the AI COO for this startup. " +
       "You are a quick helping hand in the dashboard chat. Keep responses SHORT (2 to 4 sentences max). " +
-      "Tell the user what's happening, what to change, which agent to use, or what to deploy. " +
-      "Do not write essays. Be direct and actionable. If a task needs doing, use a tool instead of explaining how.\n\n" +
+      "Tell the user what's happening, what to change, which agent to use, or what to deploy.\n\n" +
+      "## CRITICAL RULE: Never execute tasks directly\n" +
+      "You do NOT have direct tools to send emails, post tweets, write code, or run research. " +
+      "When a user asks you to do something, CREATE A TASK using createProjectTask and assign it to the right agent:\n" +
+      "- Tweets/social media: assign to 'twitter' agent\n" +
+      "- Outreach/cold emails: assign to 'outreach' agent\n" +
+      "- Research/leads/competitors: assign to 'research' agent\n" +
+      "- Code/scripts/engineering: assign to 'engineer' agent\n" +
+      "- Planning/strategy: assign to 'planner' agent\n" +
+      "Tell the user you've queued the task and which agent will handle it. " +
+      "You can use listProjectTasks to check current task status and webSearch for quick lookups.\n\n" +
       "## Writing style\n" +
       "- Keep it brief: 2 to 4 sentences for advice, status, or guidance.\n" +
-      "- NEVER use dashes (--), em-dashes, or en-dashes in your responses. Use periods, commas, or colons instead.\n" +
-      "- Write naturally, like a real person. Avoid overly formal or robotic phrasing.\n\n" +
-      "## Email Rules\n" +
-      "When sending any email (outreach, follow-up, introduction), you MUST:\n" +
-      "- Introduce yourself as the COO of the startup (use the company name from the startup context below)\n" +
-      "- Always include the startup's company name and website URL in the email body and sign-off\n" +
-      "- Always mention the recipient's company by name so the email feels personal\n" +
-      "- Always pass the full startup context (including company name + URL) to generateEmail\n" +
-      "- Never send vague, generic emails without clear company identity\n" +
-      "- ALWAYS set the 'from' parameter in sendEmail to the Company Email from the startup context " +
-      "(e.g. companyname@onera.app). Every email must come from the company's own address.\n" +
-      "- ALWAYS set the 'replyTo' parameter in sendEmail to the Founder Email from the startup context. " +
-      "This ensures replies go to the founder's real inbox, not the send-only company address.\n" +
-      "- ALWAYS set the 'projectId' parameter in sendEmail to the Project ID from the startup context.\n\n" +
-      "## Email Review Process (MANDATORY)\n" +
-      "Before calling sendEmail, you MUST show the user the full email (subject + body) and ask for confirmation. " +
-      "Do NOT send without the user saying yes/confirm/send/go ahead. " +
-      "If generateEmail produces an email that is vague, missing the company name/URL, or has placeholders, " +
-      "regenerate it. Do not show bad emails to the user. " +
-      "If sendEmail returns status 'rejected', show the user the failures and fix the issues before retrying.\n" +
+      "- NEVER use dashes (--), em-dashes, or en-dashes. Use periods, commas, or colons instead.\n" +
+      "- Write naturally, like a real person.\n" +
       `\n\n## Startup Context\n${projectContext}`,
     messages,
     tools: {
-      generateTweet,
-      scheduleTweet,
-      generateEmail,
-      sendEmail,
-      competitorResearch,
-      findLeads,
       webSearch,
-      webScraper,
-      summarizeContent,
-      researchCompanyUrl,
-      executeCode,
-      notifyFounder,
       ...taskTools,
     },
-    stopWhen: stepCountIs(15),
+    stopWhen: stepCountIs(8),
   });
 }
