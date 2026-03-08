@@ -20,9 +20,15 @@ export function formatDate(date: string | Date): string {
 
 const STATUS_RE = /%%STATUS%%(.*?)%%END%%\n?/g;
 
+export interface ChatSource {
+  title: string;
+  url: string;
+}
+
 export interface ChatStatus {
   type: "tool-call" | "tool-result";
   tool: string;
+  sources?: ChatSource[];
 }
 
 /** Human-friendly labels for tool names */
@@ -54,6 +60,7 @@ export function parseChatStream(raw: string): {
   text: string;
   statuses: ChatStatus[];
   activeLabel: string | null;
+  sources: ChatSource[];
 } {
   const statuses: ChatStatus[] = [];
   let match;
@@ -78,7 +85,33 @@ export function parseChatStream(raw: string): {
     activeLabel = TOOL_LABELS[lastPending] || lastPending;
   }
 
-  return { text, statuses, activeLabel };
+  // Collect all sources from webSearch tool results (in order, for [1], [2], etc.)
+  const sources: ChatSource[] = [];
+  for (const s of statuses) {
+    if (s.type === "tool-result" && s.sources) {
+      for (const src of s.sources) {
+        if (src.url) sources.push(src);
+      }
+    }
+  }
+
+  return { text, statuses, activeLabel, sources };
+}
+
+/**
+ * Replace [1], [2], etc. in text with markdown links using the sources array.
+ * E.g. "[1]" becomes "[1](https://example.com)" so ReactMarkdown renders it as a link.
+ */
+export function injectSourceLinks(text: string, sources: ChatSource[]): string {
+  if (sources.length === 0) return text;
+  // Match [N] where N is a 1- or 2-digit number — but NOT already part of a markdown link [N](...)
+  return text.replace(/\[(\d{1,2})\](?!\()/g, (_match, num) => {
+    const index = parseInt(num, 10) - 1; // [1] → index 0
+    if (index >= 0 && index < sources.length) {
+      return `[${num}](${sources[index].url})`;
+    }
+    return _match; // leave as-is if no matching source
+  });
 }
 
 export function formatRelativeTime(date: string | Date): string {

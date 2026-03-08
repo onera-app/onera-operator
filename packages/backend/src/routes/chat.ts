@@ -107,11 +107,27 @@ export async function chatRoutes(app: FastifyInstance) {
               `%%STATUS%%{"type":"tool-call","tool":"${part.toolName}"}%%END%%\n`
             );
             break;
-          case "tool-result":
+          case "tool-result": {
+            // For webSearch, forward the result URLs so the frontend can make [1][2] references clickable
+            let sources: Array<{ title: string; url: string }> | undefined;
+            const toolOutput = (part as any).output ?? (part as any).result;
+            if (part.toolName === "webSearch" && toolOutput && typeof toolOutput === "object") {
+              const res = toolOutput as { results?: Array<{ title?: string; url?: string }> };
+              if (Array.isArray(res.results)) {
+                sources = res.results
+                  .filter((r) => r.url)
+                  .map((r) => ({ title: r.title || "", url: r.url! }));
+              }
+            }
+            const statusPayload: Record<string, unknown> = { type: "tool-result", tool: part.toolName };
+            if (sources && sources.length > 0) {
+              statusPayload.sources = sources;
+            }
             reply.raw.write(
-              `%%STATUS%%{"type":"tool-result","tool":"${part.toolName}"}%%END%%\n`
+              `%%STATUS%%${JSON.stringify(statusPayload)}%%END%%\n`
             );
             break;
+          }
           case "text-delta":
             reply.raw.write(part.text);
             break;

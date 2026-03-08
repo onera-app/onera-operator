@@ -6,7 +6,7 @@ import { TextStreamChatTransport } from "ai";
 import ReactMarkdown from "react-markdown";
 import { ChevronDown, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { cn, parseChatStream } from "@/lib/utils";
+import { cn, parseChatStream, injectSourceLinks } from "@/lib/utils";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -183,7 +183,11 @@ function AskPanelChat({ projectId }: { projectId?: string }) {
               .map((p) => p.text)
               .join("") || "";
           const parsed = isAssistant ? parseChatStream(messageText) : null;
-          const displayText = parsed ? parsed.text : messageText;
+          const rawText = parsed ? parsed.text : messageText;
+          // Inject source links so [1], [2] become clickable markdown links
+          const displayText = parsed?.sources?.length
+            ? injectSourceLinks(rawText, parsed.sources)
+            : rawText;
           const isLastAssistant =
             isAssistant &&
             isLoading &&
@@ -254,6 +258,16 @@ function AskPanelChat({ projectId }: { projectId?: string }) {
                           <code className="bg-muted px-1 py-0.5 text-[10px] font-mono">
                             {children}
                           </code>
+                        ),
+                        a: ({ href, children }) => (
+                          <a
+                            href={href}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-primary underline underline-offset-2 hover:text-primary/80"
+                          >
+                            {children}
+                          </a>
                         ),
                       }}
                     >

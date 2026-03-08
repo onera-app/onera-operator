@@ -5,7 +5,8 @@ import { useChat } from "@ai-sdk/react";
 import { TextStreamChatTransport } from "ai";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { cn, parseChatStream } from "@/lib/utils";
+import ReactMarkdown from "react-markdown";
+import { cn, parseChatStream, injectSourceLinks } from "@/lib/utils";
 
 interface ChatBarProps {
   projectId?: string;
@@ -68,7 +69,10 @@ export function ChatBar({ projectId }: ChatBarProps) {
                 .map((p) => p.text)
                 .join("") || "";
               const parsed = isAssistant ? parseChatStream(messageText) : null;
-              const displayText = parsed ? parsed.text : messageText;
+              const rawText = parsed ? parsed.text : messageText;
+              const displayText = parsed?.sources?.length
+                ? injectSourceLinks(rawText, parsed.sources)
+                : rawText;
               const isLastAssistant =
                 isAssistant &&
                 isLoading &&
@@ -102,7 +106,29 @@ export function ChatBar({ projectId }: ChatBarProps) {
                         {activeLabel}...
                       </div>
                     )}
-                    {displayText || (isLastAssistant && !activeLabel && (
+                    {displayText ? (
+                      isAssistant ? (
+                        <ReactMarkdown
+                          components={{
+                            p: ({ children }) => <p className="mb-1 last:mb-0">{children}</p>,
+                            a: ({ href, children }) => (
+                              <a
+                                href={href}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-primary underline underline-offset-2 hover:text-primary/80"
+                              >
+                                {children}
+                              </a>
+                            ),
+                          }}
+                        >
+                          {displayText}
+                        </ReactMarkdown>
+                      ) : (
+                        displayText
+                      )
+                    ) : (isLastAssistant && !activeLabel && (
                       <span className="animate-pulse text-primary">thinking...</span>
                     ))}
                   </div>
