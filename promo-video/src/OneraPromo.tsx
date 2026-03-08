@@ -1,103 +1,67 @@
-import { AbsoluteFill, useVideoConfig } from "remotion";
+import { AbsoluteFill, useVideoConfig, Audio, staticFile } from "remotion";
 import { TransitionSeries, linearTiming } from "@remotion/transitions";
 import { fade } from "@remotion/transitions/fade";
-import { LogoReveal } from "./scenes/LogoReveal";
-import { ProblemScene } from "./scenes/ProblemScene";
-import { SolutionScene } from "./scenes/SolutionScene";
-import { ProductScene } from "./scenes/ProductScene";
-import { AgentScene } from "./scenes/AgentScene";
-import { FeaturesScene } from "./scenes/FeaturesScene";
-import { CTAScene } from "./scenes/CTAScene";
 
-/**
- * Onera Promo — YC-Style Startup Launch Video
- *
- * Cinematic dark aesthetic with ambient gradient orbs, real product UI,
- * live terminal simulations, and clean kinetic typography.
- *
- * Timeline (~37s at 30fps):
- *   0:00 - 0:05  Logo reveal with glow effects
- *   0:05 - 0:10  Problem — "You're wearing every hat"
- *   0:10 - 0:15  Solution — "What if it ran itself?"
- *   0:15 - 0:22  Product showcase — animated dashboard mock
- *   0:22 - 0:28  Agents in action — live terminal feed
- *   0:28 - 0:36  Feature beats (4 x 2s)
- *   0:36 - 0:41  CTA close
- *
- * Total scene content: 5+5+5+7+6+8+5 = 41s
- * Minus 6 transitions x 0.7s = 4.2s overlap
- * Effective: ~37s
- */
+import { S1_TheGrind } from "./scenes/S1_TheGrind";
+import { S2_BreakingPoint } from "./scenes/S2_BreakingPoint";
+import { S3_TheShift } from "./scenes/S3_TheShift";
+import { S4_OneraOperator } from "./scenes/S4_OneraOperator";
+import { S5_Dashboard } from "./scenes/S5_Dashboard";
+import { S6_CTA } from "./scenes/S6_CTA";
+import { C } from "./colors";
+
 export const OneraPromo = () => {
   const { fps } = useVideoConfig();
-  const fadeDur = Math.round(0.7 * fps); // 0.7s fades
+  const fadeDur = Math.round(0.5 * fps);
+
+  // Audio total duration: ~112.61s = ~3378 frames @ 30fps
+  // Distributed to match voiceover pacing:
+  const d1 = 760;  // The Grind (~25.3s)
+  const d2 = 630;  // Breaking Point (~21s)
+  const d3 = 570;  // The Shift (~19s)
+  const d4 = 630;  // Onera Operator (~21s)
+  const d5 = 400;  // Dashboard (~13.3s)
+  const d6 = 388;  // CTA (~12.9s)
+  // Total = 3378
 
   return (
-    <AbsoluteFill style={{ backgroundColor: "#06060f" }}>
+    <AbsoluteFill style={{ backgroundColor: C.bg }}>
+      {/* Voiceover — replace public/voiceover.mp3 with your Azure TTS file */}
+      <Audio src={staticFile("voiceover.mp3")} />
+
       <TransitionSeries>
-        {/* 1. Logo Reveal */}
-        <TransitionSeries.Sequence durationInFrames={5 * fps}>
-          <LogoReveal />
+        <TransitionSeries.Sequence durationInFrames={d1}>
+          <S1_TheGrind />
         </TransitionSeries.Sequence>
 
-        <TransitionSeries.Transition
-          presentation={fade()}
-          timing={linearTiming({ durationInFrames: fadeDur })}
-        />
+        <TransitionSeries.Transition presentation={fade()} timing={linearTiming({ durationInFrames: fadeDur })} />
 
-        {/* 2. Problem */}
-        <TransitionSeries.Sequence durationInFrames={5 * fps}>
-          <ProblemScene />
+        <TransitionSeries.Sequence durationInFrames={d2}>
+          <S2_BreakingPoint />
         </TransitionSeries.Sequence>
 
-        <TransitionSeries.Transition
-          presentation={fade()}
-          timing={linearTiming({ durationInFrames: fadeDur })}
-        />
+        <TransitionSeries.Transition presentation={fade()} timing={linearTiming({ durationInFrames: fadeDur })} />
 
-        {/* 3. Solution */}
-        <TransitionSeries.Sequence durationInFrames={5 * fps}>
-          <SolutionScene />
+        <TransitionSeries.Sequence durationInFrames={d3}>
+          <S3_TheShift />
         </TransitionSeries.Sequence>
 
-        <TransitionSeries.Transition
-          presentation={fade()}
-          timing={linearTiming({ durationInFrames: fadeDur })}
-        />
+        <TransitionSeries.Transition presentation={fade()} timing={linearTiming({ durationInFrames: fadeDur })} />
 
-        {/* 4. Product Showcase */}
-        <TransitionSeries.Sequence durationInFrames={7 * fps}>
-          <ProductScene />
+        <TransitionSeries.Sequence durationInFrames={d4}>
+          <S4_OneraOperator />
         </TransitionSeries.Sequence>
 
-        <TransitionSeries.Transition
-          presentation={fade()}
-          timing={linearTiming({ durationInFrames: fadeDur })}
-        />
+        <TransitionSeries.Transition presentation={fade()} timing={linearTiming({ durationInFrames: fadeDur })} />
 
-        {/* 5. Agents in Action */}
-        <TransitionSeries.Sequence durationInFrames={6 * fps}>
-          <AgentScene />
+        <TransitionSeries.Sequence durationInFrames={d5}>
+          <S5_Dashboard />
         </TransitionSeries.Sequence>
 
-        <TransitionSeries.Transition
-          presentation={fade()}
-          timing={linearTiming({ durationInFrames: fadeDur })}
-        />
+        <TransitionSeries.Transition presentation={fade()} timing={linearTiming({ durationInFrames: fadeDur })} />
 
-        {/* 6. Feature Beats */}
-        <TransitionSeries.Sequence durationInFrames={8 * fps}>
-          <FeaturesScene />
-        </TransitionSeries.Sequence>
-
-        <TransitionSeries.Transition
-          presentation={fade()}
-          timing={linearTiming({ durationInFrames: fadeDur })}
-        />
-
-        {/* 7. CTA */}
-        <TransitionSeries.Sequence durationInFrames={5 * fps}>
-          <CTAScene />
+        <TransitionSeries.Sequence durationInFrames={d6}>
+          <S6_CTA />
         </TransitionSeries.Sequence>
       </TransitionSeries>
     </AbsoluteFill>

@@ -1,407 +1,219 @@
-import { useCurrentFrame, useVideoConfig, interpolate, Easing } from "remotion";
 import { C } from "../colors";
-import { sansFont, monoFont } from "../fonts";
+import { serifFont, monoFont, sansFont } from "../fonts";
+import { spring, useCurrentFrame, useVideoConfig, interpolate } from "remotion";
+import { CornerMarks } from "./BlueprintElements";
 
 /**
- * Simulated dashboard UI that mimics the real Onera Operator product.
- * Shows a multi-column layout with live data, agent activity, etc.
+ * Blueprint wireframe dashboard — dark blue with cyan/white wireframe lines.
+ * Mimics the real Onera Operator dashboard layout.
  */
-export const DashboardMock = ({ delay = 0 }: { delay?: number }) => {
+export const DashboardMock = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const t = Math.max(0, frame - delay);
 
-  // Main window entrance
-  const windowProgress = interpolate(t, [0, fps * 0.8], [0, 1], {
-    extrapolateRight: "clamp",
-    easing: Easing.out(Easing.quad),
-  });
-  const windowScale = interpolate(t, [0, fps * 0.8], [0.92, 1], {
-    extrapolateRight: "clamp",
-    easing: Easing.out(Easing.quad),
-  });
+  const dashboardEnter = spring({ frame, fps, config: { damping: 14 } });
 
-  const col1Opacity = interpolate(t, [fps * 0.3, fps * 0.8], [0, 1], {
-    extrapolateLeft: "clamp",
-    extrapolateRight: "clamp",
-  });
-  const col2Opacity = interpolate(t, [fps * 0.6, fps * 1.1], [0, 1], {
-    extrapolateLeft: "clamp",
-    extrapolateRight: "clamp",
-  });
-  const col3Opacity = interpolate(t, [fps * 0.9, fps * 1.4], [0, 1], {
-    extrapolateLeft: "clamp",
-    extrapolateRight: "clamp",
-  });
+  // Animated counters
+  const tasksCompleted = Math.floor(interpolate(frame, [0, 200], [1402, 1408]));
+  const emailsSent = Math.floor(interpolate(frame, [0, 200], [890, 895]));
+  const tweetsPosted = Math.floor(interpolate(frame, [0, 200], [312, 314]));
 
-  // Pulsing dot for live indicator
-  const pulse = 0.5 + Math.sin(t * 0.15) * 0.5;
+  // Progress bar
+  const progress1 = spring({ frame: frame - 45, fps, config: { damping: 20 }, durationInFrames: 120 }) * 75;
 
-  // Animated task count
-  const taskCount = Math.min(47, Math.floor(interpolate(t, [fps * 1.2, fps * 2.5], [0, 47], {
-    extrapolateLeft: "clamp",
-    extrapolateRight: "clamp",
-  })));
-
-  const cardStyle = {
-    backgroundColor: "rgba(255, 255, 255, 0.03)",
-    border: `1px dashed ${C.blueprintLine}`,
-    borderRadius: 8,
-    padding: "12px 14px",
-    marginBottom: 10,
-  };
-
-  const labelStyle = {
-    fontFamily: monoFont,
-    fontSize: 10,
-    color: C.blue,
-    textTransform: "uppercase" as const,
-    letterSpacing: "0.08em",
-    marginBottom: 4,
-  };
-
-  const statStyle = {
-    fontFamily: monoFont,
-    fontSize: 22,
-    fontWeight: 700,
-    color: C.white,
-  };
+  // Blinker for live indicator
+  const blink = Math.sin(frame * 0.15) > 0 ? 1 : 0.4;
 
   return (
     <div
       style={{
-        width: 1100,
-        height: 660,
-        borderRadius: 16,
-        overflow: "hidden",
-        border: `1px solid ${C.cardBorder}`,
-        backgroundColor: "rgba(6, 6, 15, 0.95)",
-        opacity: windowProgress,
-        transform: `scale(${windowScale})`,
-        boxShadow: `0 30px 80px rgba(0, 0, 0, 0.6), 0 0 60px ${C.blueGlow}`,
+        width: 1440,
+        height: 850,
+        backgroundColor: "rgba(26, 39, 68, 0.95)",
+        border: `1px solid ${C.wire}`,
+        display: "flex",
+        flexDirection: "column",
+        transform: `scale(${interpolate(dashboardEnter, [0, 1], [0.95, 1])})`,
+        opacity: dashboardEnter,
+        position: "relative",
+        boxShadow: `0 0 80px rgba(120, 180, 255, 0.08)`,
       }}
     >
-      {/* Top terminal bar */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 6,
-          padding: "8px 14px",
-          backgroundColor: "rgba(10, 12, 24, 0.95)",
-          borderBottom: `1px solid ${C.cardBorder}`,
-        }}
-      >
-        <div style={{ width: 10, height: 10, borderRadius: "50%", backgroundColor: "#FF5F56" }} />
-        <div style={{ width: 10, height: 10, borderRadius: "50%", backgroundColor: "#FFBD2E" }} />
-        <div style={{ width: 10, height: 10, borderRadius: "50%", backgroundColor: "#27C93F" }} />
-        <div style={{ flex: 1 }} />
-        <div
-          style={{
-            fontFamily: monoFont,
-            fontSize: 11,
-            color: C.termCyan,
-          }}
-        >
-          {">"} planner agent running...
-        </div>
-        <div
-          style={{
-            width: 6,
-            height: 6,
-            borderRadius: "50%",
-            backgroundColor: C.termGreen,
-            opacity: pulse,
-          }}
-        />
-      </div>
+      <CornerMarks color={C.wireGlow} size={16} />
 
-      {/* Header */}
+      {/* ── Header ─────────────────────────────────── */}
       <div
         style={{
+          height: 56,
+          borderBottom: `1px solid ${C.wire}`,
           display: "flex",
           alignItems: "center",
+          padding: "0 24px",
           justifyContent: "space-between",
-          padding: "10px 20px",
-          borderBottom: `1px solid ${C.cardBorder}`,
         }}
       >
-        <div style={{ fontFamily: sansFont, fontSize: 16, fontWeight: 700, color: C.white, letterSpacing: "-0.02em" }}>
-          Onera Operator
-        </div>
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+          <div style={{ fontFamily: serifFont, fontWeight: 800, fontSize: 24, color: C.textPrimary }}>
+            Onera Operator
+          </div>
+          <div style={{ width: 1, height: 20, backgroundColor: C.wire }} />
           <div
             style={{
-              fontFamily: monoFont,
-              fontSize: 10,
-              color: C.termGreen,
-              padding: "3px 8px",
-              borderRadius: 4,
-              border: `1px solid rgba(74, 222, 128, 0.3)`,
               display: "flex",
               alignItems: "center",
-              gap: 4,
+              gap: 6,
+              border: `1px solid ${C.wire}`,
+              color: C.accent,
+              padding: "3px 10px",
+              fontSize: 9,
+              fontFamily: monoFont,
+              fontWeight: 700,
+              textTransform: "uppercase",
+              letterSpacing: "0.15em",
             }}
           >
+            <div style={{ width: 5, height: 5, borderRadius: "50%", backgroundColor: C.green, opacity: blink }} />
+            SYSTEM_LIVE
+          </div>
+        </div>
+        <div style={{ fontFamily: monoFont, fontSize: 10, color: C.textMuted }}>REV 3.2.0</div>
+      </div>
+
+      {/* ── 4-column Layout ──────────────────────── */}
+      <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
+        {/* Col 1: Operator + Agents */}
+        <div style={{ width: 280, borderRight: `1px solid ${C.wireDim}`, padding: 20, display: "flex", flexDirection: "column", gap: 28 }}>
+          <div>
+            <div style={{ borderBottom: `1px solid ${C.wire}`, paddingBottom: 8, marginBottom: 16 }}>
+              <span style={{ fontFamily: monoFont, fontWeight: 700, fontSize: 10, color: C.accent, letterSpacing: "0.15em", textTransform: "uppercase" }}>
+                Operator Status
+              </span>
+            </div>
             <div
               style={{
-                width: 5,
-                height: 5,
-                borderRadius: "50%",
-                backgroundColor: C.termGreen,
-                opacity: pulse,
+                width: "100%",
+                height: 100,
+                border: `1px dashed ${C.wire}`,
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                position: "relative",
               }}
-            />
-            Live
-          </div>
-          <div
-            style={{
-              width: 28,
-              height: 28,
-              borderRadius: "50%",
-              backgroundColor: C.blue,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontFamily: sansFont,
-              fontSize: 11,
-              fontWeight: 600,
-              color: C.white,
-            }}
-          >
-            S
-          </div>
-        </div>
-      </div>
-
-      {/* Columns */}
-      <div style={{ display: "flex", flex: 1, height: "calc(100% - 80px)" }}>
-        {/* Column 1: Company */}
-        <div
-          style={{
-            width: "30%",
-            borderRight: `1px solid ${C.cardBorder}`,
-            padding: 16,
-            opacity: col1Opacity,
-            overflow: "hidden",
-          }}
-        >
-          <div style={{ fontFamily: sansFont, fontSize: 18, fontWeight: 700, color: C.white, marginBottom: 4 }}>
-            Acme Corp
-          </div>
-          <div style={{ fontFamily: sansFont, fontSize: 11, color: C.gray, marginBottom: 16 }}>
-            AI-powered growth platform
-          </div>
-
-          {/* Stats row */}
-          <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
-            <div style={{ ...cardStyle, flex: 1, textAlign: "center" as const }}>
-              <div style={labelStyle}>Tasks</div>
-              <div style={statStyle}>{taskCount}</div>
-            </div>
-            <div style={{ ...cardStyle, flex: 1, textAlign: "center" as const }}>
-              <div style={labelStyle}>Agents</div>
-              <div style={statStyle}>5</div>
+            >
+              <CornerMarks color={C.wireDim} size={8} />
+              {/* Simple face indicator */}
+              <div style={{ display: "flex", gap: 16 }}>
+                <div style={{ width: 20, height: 6, backgroundColor: C.accent }} />
+                <div style={{ width: 20, height: 6, backgroundColor: C.accent }} />
+              </div>
             </div>
           </div>
 
-          {/* Agent list */}
-          <div style={labelStyle}>Active Agents</div>
-          {["Planner", "Outreach", "Twitter", "Research", "Engineer"].map((agent, i) => {
-            const isActive = i < 3;
-            const agentAppear = interpolate(t, [fps * (1.0 + i * 0.15), fps * (1.3 + i * 0.15)], [0, 1], {
-              extrapolateLeft: "clamp",
-              extrapolateRight: "clamp",
-            });
-            return (
-              <div
-                key={i}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                  padding: "6px 0",
-                  opacity: agentAppear,
-                }}
-              >
-                <div
-                  style={{
-                    width: 6,
-                    height: 6,
-                    borderRadius: "50%",
-                    backgroundColor: isActive ? C.termGreen : C.gray,
-                    opacity: isActive ? pulse : 0.5,
-                  }}
-                />
-                <div style={{ fontFamily: monoFont, fontSize: 12, color: isActive ? C.white : C.gray }}>
-                  {agent}
+          <div>
+            <div style={{ borderBottom: `1px solid ${C.wire}`, paddingBottom: 8, marginBottom: 16, display: "flex", justifyContent: "space-between" }}>
+              <span style={{ fontFamily: monoFont, fontWeight: 700, fontSize: 10, color: C.accent, letterSpacing: "0.15em", textTransform: "uppercase" }}>
+                Active Nodes
+              </span>
+              <span style={{ fontFamily: monoFont, fontSize: 9, color: C.green }}>[3 ONLINE]</span>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {["planner", "engineer", "outreach", "twitter"].map((agent, i) => (
+                <div key={i} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <span style={{ color: i < 3 ? C.green : C.textMuted, fontSize: 10 }}>{i < 3 ? "●" : "○"}</span>
+                  <span style={{ fontFamily: monoFont, fontSize: 13, color: i < 3 ? C.textPrimary : C.textMuted }}>{agent}</span>
                 </div>
-                {isActive && (
-                  <div
-                    style={{
-                      marginLeft: "auto",
-                      fontFamily: monoFont,
-                      fontSize: 9,
-                      color: C.termGreen,
-                      padding: "1px 6px",
-                      borderRadius: 3,
-                      border: `1px solid rgba(74, 222, 128, 0.2)`,
-                    }}
-                  >
-                    running
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Column 2: Tasks */}
-        <div
-          style={{
-            width: "40%",
-            borderRight: `1px solid ${C.cardBorder}`,
-            padding: 16,
-            opacity: col2Opacity,
-            overflow: "hidden",
-          }}
-        >
-          <div style={labelStyle}>Running Tasks</div>
-
-          {/* Active task */}
-          <div
-            style={{
-              ...cardStyle,
-              borderStyle: "solid",
-              borderColor: "rgba(74, 222, 128, 0.3)",
-              borderWidth: 1,
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
-              <div
-                style={{
-                  fontFamily: monoFont,
-                  fontSize: 9,
-                  color: "#67E8F9",
-                  padding: "1px 6px",
-                  borderRadius: 3,
-                  backgroundColor: "rgba(103, 232, 249, 0.1)",
-                }}
-              >
-                TWITTER
-              </div>
-              <div
-                style={{
-                  width: 5,
-                  height: 5,
-                  borderRadius: "50%",
-                  backgroundColor: C.termGreen,
-                  opacity: pulse,
-                }}
-              />
-            </div>
-            <div style={{ fontFamily: sansFont, fontSize: 13, color: C.white, fontWeight: 500 }}>
-              Generate and schedule 3 tweets about product launch
-            </div>
-            <div style={{ fontFamily: monoFont, fontSize: 10, color: C.gray, marginTop: 4 }}>
-              2m 14s elapsed
+              ))}
             </div>
           </div>
+        </div>
 
-          {/* More tasks */}
+        {/* Col 2: Metrics */}
+        <div style={{ width: 260, borderRight: `1px solid ${C.wireDim}`, padding: 20, display: "flex", flexDirection: "column", gap: 24 }}>
+          <div style={{ borderBottom: `1px solid ${C.wire}`, paddingBottom: 8 }}>
+            <span style={{ fontFamily: monoFont, fontWeight: 700, fontSize: 10, color: C.accent, letterSpacing: "0.15em", textTransform: "uppercase" }}>
+              Metrics
+            </span>
+          </div>
+
           {[
-            { tag: "OUTREACH", tagColor: "#A78BFA", text: "Send personalized cold emails to 15 B2B leads" },
-            { tag: "RESEARCH", tagColor: "#FCD34D", text: "Competitive analysis: pricing and feature comparison" },
-            { tag: "ENGINEERING", tagColor: "#34D399", text: "Set up automated email sequences with tracking" },
-          ].map((task, i) => (
-            <div key={i} style={cardStyle}>
-              <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
-                <div
-                  style={{
-                    fontFamily: monoFont,
-                    fontSize: 9,
-                    color: task.tagColor,
-                    padding: "1px 6px",
-                    borderRadius: 3,
-                    backgroundColor: `${task.tagColor}15`,
-                  }}
-                >
-                  {task.tag}
-                </div>
+            { label: "Tasks Completed", value: tasksCompleted, size: 38 },
+            { label: "Emails Sent", value: emailsSent, size: 28 },
+            { label: "Tweets Posted", value: tweetsPosted, size: 28 },
+          ].map(({ label, value, size }, i) => (
+            <div key={i} style={{ ...(i > 0 ? { borderTop: `1px dashed ${C.wireDim}`, paddingTop: 12 } : {}) }}>
+              <div style={{ fontFamily: monoFont, fontSize: 9, textTransform: "uppercase", letterSpacing: "0.15em", color: C.textMuted }}>
+                {label}
               </div>
-              <div style={{ fontFamily: sansFont, fontSize: 12, color: C.dimWhite }}>
-                {task.text}
-              </div>
-            </div>
-          ))}
-
-          <div style={labelStyle}>Completed Today</div>
-          {["Analyze top 5 competitor landing pages", "Draft weekly growth report"].map((task, i) => (
-            <div key={i} style={{ ...cardStyle, display: "flex", alignItems: "center", gap: 8 }}>
-              <div style={{ fontFamily: sansFont, fontSize: 11, color: C.termGreen }}>
-                {"✓"}
-              </div>
-              <div style={{ fontFamily: sansFont, fontSize: 12, color: C.gray }}>
-                {task}
+              <div style={{ fontFamily: sansFont, fontSize: size, fontWeight: 800, color: C.textPrimary, marginTop: 4 }}>
+                {value.toLocaleString()}
               </div>
             </div>
           ))}
         </div>
 
-        {/* Column 3: Social / Output */}
-        <div
-          style={{
-            width: "30%",
-            padding: 16,
-            opacity: col3Opacity,
-            overflow: "hidden",
-          }}
-        >
-          <div style={labelStyle}>Recent Tweets</div>
+        {/* Col 3: Tasks */}
+        <div style={{ flex: 1, borderRight: `1px solid ${C.wireDim}`, padding: 20, display: "flex", flexDirection: "column", gap: 16 }}>
+          <div style={{ borderBottom: `1px solid ${C.wire}`, paddingBottom: 8 }}>
+            <span style={{ fontFamily: monoFont, fontWeight: 700, fontSize: 10, color: C.accent, letterSpacing: "0.15em", textTransform: "uppercase" }}>
+              Task Queue
+            </span>
+          </div>
 
-          {[
-            "We just shipped autonomous cold outreach. Your AI SDR finds leads, writes personalized emails, and sends them. Zero manual work.",
-            "Building in public: our research agent now monitors 50+ competitor signals in real-time. Pricing changes, feature launches, hiring patterns.",
-          ].map((tweet, i) => {
-            const tweetProgress = interpolate(t, [fps * (1.8 + i * 0.5), fps * (2.2 + i * 0.5)], [0, 1], {
-              extrapolateLeft: "clamp",
-              extrapolateRight: "clamp",
-            });
-            return (
-              <div key={i} style={{ ...cardStyle, opacity: tweetProgress }}>
-                <div style={{ fontFamily: sansFont, fontSize: 11, color: C.dimWhite, lineHeight: 1.5 }}>
-                  {tweet}
-                </div>
-                <div style={{ fontFamily: monoFont, fontSize: 9, color: C.gray, marginTop: 6 }}>
-                  @onerachat · 2h ago
-                </div>
-              </div>
-            );
-          })}
+          {/* Running task */}
+          <div style={{ border: `1px solid ${C.wireGlow}`, backgroundColor: "rgba(120, 180, 255, 0.04)", padding: 16, position: "relative" }}>
+            <CornerMarks color={C.wireGlow} size={8} />
+            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <div style={{ fontFamily: monoFont, color: C.accent, fontSize: 14 }}>&gt;</div>
+              <div style={{ fontFamily: sansFont, fontWeight: 700, fontSize: 16, color: C.textPrimary }}>Implement React Dashboard</div>
+            </div>
+            <div style={{ fontFamily: monoFont, fontSize: 11, color: C.textMuted, marginTop: 8 }}>
+              Writing components based on LivePage design.
+            </div>
+            <div style={{ height: 3, border: `1px solid ${C.wireDim}`, marginTop: 12, padding: 1 }}>
+              <div style={{ height: "100%", backgroundColor: C.accent, width: `${progress1}%` }} />
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", marginTop: 10 }}>
+              <span style={{ fontFamily: monoFont, fontSize: 9, color: C.accent, letterSpacing: "0.12em" }}>[ENGINEERING]</span>
+              <span style={{ fontFamily: monoFont, fontSize: 9, color: C.textMuted }}>T+ 2m 14s</span>
+            </div>
+          </div>
 
-          <div style={{ ...labelStyle, marginTop: 8 }}>Email Outreach</div>
-          {[
-            { to: "sarah@techcorp.io", subject: "Quick thought on your growth stack" },
-            { to: "james@saasly.com", subject: "Saw your Series A — congrats!" },
-          ].map((email, i) => {
-            const emailProgress = interpolate(t, [fps * (2.5 + i * 0.4), fps * (2.9 + i * 0.4)], [0, 1], {
-              extrapolateLeft: "clamp",
-              extrapolateRight: "clamp",
-            });
-            return (
-              <div key={i} style={{ ...cardStyle, opacity: emailProgress }}>
-                <div style={{ fontFamily: monoFont, fontSize: 10, color: C.termGreen, marginBottom: 2 }}>
-                  SENT
-                </div>
-                <div style={{ fontFamily: sansFont, fontSize: 11, color: C.white }}>
-                  {email.subject}
-                </div>
-                <div style={{ fontFamily: monoFont, fontSize: 9, color: C.gray, marginTop: 2 }}>
-                  to: {email.to}
-                </div>
+          {/* Completed task */}
+          <div style={{ border: `1px dashed ${C.wireDim}`, padding: 16 }}>
+            <div style={{ fontFamily: sansFont, fontWeight: 600, fontSize: 14, color: C.textSecondary }}>Research Open Source Competitors</div>
+            <div style={{ fontFamily: monoFont, fontSize: 10, color: C.textMuted, marginTop: 6 }}>Analyzed 5 competitor repositories.</div>
+            <div style={{ display: "flex", justifyContent: "space-between", marginTop: 10, borderTop: `1px dashed ${C.wireDim}`, paddingTop: 8 }}>
+              <span style={{ fontFamily: monoFont, fontSize: 9, color: C.textMuted, letterSpacing: "0.12em" }}>[RESEARCH]</span>
+              <span style={{ fontFamily: monoFont, fontSize: 9, color: C.green }}>COMPLETED</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Col 4: Terminal */}
+        <div style={{ width: 320, padding: 20, display: "flex", flexDirection: "column", gap: 16, backgroundColor: "rgba(0, 0, 0, 0.15)" }}>
+          <div style={{ borderBottom: `1px solid ${C.wire}`, paddingBottom: 8 }}>
+            <span style={{ fontFamily: monoFont, fontWeight: 700, fontSize: 10, color: C.accent, letterSpacing: "0.15em", textTransform: "uppercase" }}>
+              Terminal I/O
+            </span>
+          </div>
+
+          <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "flex-end", gap: 16 }}>
+            <div>
+              <span style={{ fontFamily: monoFont, fontSize: 9, color: C.accent, letterSpacing: "0.1em" }}>&gt; USER_QUERY</span>
+              <div style={{ fontFamily: monoFont, fontSize: 12, color: C.textSecondary, marginTop: 4 }}>What are you working on right now?</div>
+            </div>
+            <div>
+              <span style={{ fontFamily: monoFont, fontSize: 9, color: C.accent, letterSpacing: "0.1em" }}>&gt; SYSTEM_REPLY</span>
+              <div style={{ fontFamily: monoFont, fontSize: 12, borderLeft: `2px solid ${C.accent}`, paddingLeft: 12, color: C.textSecondary, lineHeight: 1.5, marginTop: 4 }}>
+                Implementing the React dashboard. Task is 75% complete.
               </div>
-            );
-          })}
+            </div>
+          </div>
+
+          <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+            <div style={{ flex: 1, border: `1px solid ${C.wireDim}`, padding: "6px 12px", fontFamily: monoFont, fontSize: 10, color: C.textMuted }}>_</div>
+            <div style={{ border: `1px solid ${C.wire}`, padding: "6px 14px", fontFamily: monoFont, fontSize: 10, color: C.accent, fontWeight: 700 }}>EXEC</div>
+          </div>
         </div>
       </div>
     </div>

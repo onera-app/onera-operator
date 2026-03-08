@@ -1,0 +1,8 @@
+# TTS generation scripts (contain API keys)
+generate-audio.mjs
+generate-elevenlabs.mjs
+test-audio.mjs
+
+# Temporary render artifacts
+tmp_frames/
+out/
