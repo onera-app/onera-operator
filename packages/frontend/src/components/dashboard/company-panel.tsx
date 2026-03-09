@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { api, type TaskMetrics, type AgentStatus, type Project, type EmailLogEntry } from "@/lib/api-client";
-import { formatRelativeTime } from "@/lib/utils";
+import { cn, formatRelativeTime } from "@/lib/utils";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { BillingSection } from "./billing-section";
 import { LiveFeed } from "./live-feed";
@@ -32,6 +32,7 @@ export function CompanyPanel({
   const [emails, setEmails] = useState<EmailLogEntry[]>([]);
   const [triggering, setTriggering] = useState(false);
   const [triggeringAgent, setTriggeringAgent] = useState<string | null>(null);
+  const [togglingPause, setTogglingPause] = useState(false);
 
   const fetchData = useCallback(async () => {
     if (!projectId) return;
@@ -87,13 +88,29 @@ export function CompanyPanel({
     }
   }
 
+  async function handleTogglePause() {
+    if (!projectId || !project) return;
+    setTogglingPause(true);
+    try {
+      const updated = await api.projects.pause(projectId, !project.paused);
+      setProject(updated);
+    } catch (err: any) {
+      console.error("[company-panel] Pause toggle failed:", err.message || err);
+    } finally {
+      setTogglingPause(false);
+    }
+  }
+
+  const isPaused = project?.paused ?? false;
   const runningAgents = agents.filter((a) => a.status === "running");
   const isWorking = metrics && (metrics.inProgress > 0 || metrics.pending > 0);
-  const status = metrics?.inProgress
-    ? "Working"
-    : metrics?.pending
-      ? "Planning"
-      : "Active";
+  const status = isPaused
+    ? "Paused"
+    : metrics?.inProgress
+      ? "Working"
+      : metrics?.pending
+        ? "Planning"
+        : "Active";
 
   // Parse JSON fields for display
   const competitors = (() => {
@@ -161,15 +178,17 @@ export function CompanyPanel({
 |______|`}
           </div>
           <div>
-            <Badge variant={isWorking ? "default" : "success"}>
+            <Badge variant={isPaused ? "destructive" : isWorking ? "default" : "success"}>
               {status}
             </Badge>
             <p className="text-xs text-muted-foreground mt-1.5 uppercase tracking-wider">
-              {metrics?.inProgress
-                ? `Running ${metrics.inProgress} task${metrics.inProgress > 1 ? "s" : ""}`
-                : metrics?.pending
-                  ? `${metrics.pending} task${metrics.pending > 1 ? "s" : ""} queued`
-                  : "Ready to execute"}
+              {isPaused
+                ? "Agent loops suspended"
+                : metrics?.inProgress
+                  ? `Running ${metrics.inProgress} task${metrics.inProgress > 1 ? "s" : ""}`
+                  : metrics?.pending
+                    ? `${metrics.pending} task${metrics.pending > 1 ? "s" : ""} queued`
+                    : "Ready to execute"}
             </p>
           </div>
         </div>
@@ -212,7 +231,7 @@ export function CompanyPanel({
             {agents.map((agent) => {
               const isRunning = agent.status === "running";
               const isError = agent.status === "error";
-              const canTrigger = executableAgents.has(agent.name) && !isRunning;
+              const canTrigger = executableAgents.has(agent.name) && !isRunning && !isPaused;
               const isTriggeringThis = triggeringAgent === agent.name;
               return (
                 <div key={agent.id} className="flex items-center justify-between gap-2">
@@ -263,16 +282,35 @@ export function CompanyPanel({
       {/* Billing & Credits */}
       <BillingSection />
 
-      {/* Run agent loop button */}
-      <Button
-        size="sm"
-        variant="outline"
-        className="w-full text-xs uppercase tracking-wider"
-        onClick={handleTriggerLoop}
-        disabled={triggering || !projectId}
-      >
-        {triggering ? "Triggering..." : "Run Agent Loop"}
-      </Button>
+      {/* Pause / Run agent loop controls */}
+      <div className="flex gap-2">
+        <Button
+          size="sm"
+          variant={isPaused ? "default" : "outline"}
+          className={cn(
+            "flex-1 text-xs uppercase tracking-wider",
+            isPaused && "bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+          )}
+          onClick={handleTogglePause}
+          disabled={togglingPause || !projectId}
+        >
+          {togglingPause ? "..." : isPaused ? "Unpause" : "Pause"}
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          className="flex-1 text-xs uppercase tracking-wider"
+          onClick={handleTriggerLoop}
+          disabled={triggering || !projectId || isPaused}
+        >
+          {triggering ? "Triggering..." : "Run Agent Loop"}
+        </Button>
+      </div>
+      {isPaused && (
+        <p className="text-xs text-destructive text-center font-mono uppercase tracking-wider">
+          All agent loops and reports are suspended
+        </p>
+      )}
 
       {/* Separator */}
       <div className="border-t border-dashed border-border" />

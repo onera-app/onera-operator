@@ -115,8 +115,9 @@ export default function DashboardPage() {
                 className={`shrink-0 ${selectedProject?.id === p.id
                     ? ""
                     : "border-dashed border-border text-muted-foreground hover:border-primary hover:text-primary"
-                  }`}
+                  } ${p.paused ? "opacity-60" : ""}`}
               >
+                {p.paused && <span className="mr-1 text-destructive">||</span>}
                 {p.name}
               </Button>
             ))}

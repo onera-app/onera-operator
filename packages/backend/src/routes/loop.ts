@@ -10,10 +10,14 @@ async function verifyProjectOwnership(
 ): Promise<boolean> {
   const project = await prisma.project.findFirst({
     where: { id: projectId, userId },
-    select: { id: true },
+    select: { id: true, paused: true },
   });
   if (!project) {
     reply.code(404).send({ error: "Project not found" });
+    return false;
+  }
+  if (project.paused) {
+    reply.code(409).send({ error: "Project is paused. Unpause it before triggering the agent loop." });
     return false;
   }
   return true;

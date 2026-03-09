@@ -66,6 +66,11 @@ export const api = {
     },
     email: (projectId: string, emailId: string) =>
       fetchApi<EmailLogEntry & { body: string }>(`/api/projects/${projectId}/emails/${emailId}`),
+    pause: (id: string, paused: boolean) =>
+      fetchApi<Project>(`/api/projects/${id}/pause`, {
+        method: "PATCH",
+        body: JSON.stringify({ paused }),
+      }),
   },
 
   tasks: {
@@ -205,6 +210,7 @@ export interface Project {
   competitors: string | null;
   goals: string | null;
   website: string | null;
+  paused: boolean;
   createdAt: string;
   updatedAt: string;
 }

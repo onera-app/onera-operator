@@ -7,6 +7,7 @@ export interface Project {
   competitors: string | null;
   goals: string | null;
   website: string | null;
+  paused: boolean;
   createdAt: Date;
   updatedAt: Date;
 }

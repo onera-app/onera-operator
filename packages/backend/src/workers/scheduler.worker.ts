@@ -66,6 +66,10 @@ async function runAgentLoop(specificProjectId?: string) {
   }
 
   for (const project of projects) {
+    if (project.paused) {
+      console.log(`[agent-loop] Skipping paused project: ${project.name}`);
+      continue;
+    }
     console.log(`[agent-loop] Processing project: ${project.name}`);
 
     try {

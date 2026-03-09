@@ -40,6 +40,10 @@ export function startReportWorker(): Worker<SchedulerJob> {
         : await prisma.project.findMany();
 
       for (const project of projects) {
+        if (project.paused) {
+          console.log(`[report-worker] Skipping paused project: ${project.name}`);
+          continue;
+        }
         try {
           const projectContext = await buildProjectContext(project);
           const completedTasks = await getRecentCompletedTasks(

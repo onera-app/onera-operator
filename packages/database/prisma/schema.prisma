@@ -73,6 +73,7 @@ model Project {
   website      String?
   companyEmail String?  @unique @map("company_email")
   logoUrl      String?  @map("logo_url")
+  paused       Boolean  @default(false)
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 

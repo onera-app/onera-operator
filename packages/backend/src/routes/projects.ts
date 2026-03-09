@@ -272,6 +272,32 @@ export async function projectRoutes(app: FastifyInstance) {
     }
   });
 
+  // Toggle pause on a project
+  app.patch<{
+    Params: { id: string };
+    Body: { paused: boolean };
+  }>("/api/projects/:id/pause", async (request, reply) => {
+    const userId = request.authUser!.id;
+    const existing = await prisma.project.findFirst({
+      where: { id: request.params.id, userId },
+    });
+    if (!existing) {
+      return reply.code(404).send({ error: "Project not found" });
+    }
+    const { paused } = request.body;
+    if (typeof paused !== "boolean") {
+      return reply.code(400).send({ error: "'paused' must be a boolean" });
+    }
+    const project = await prisma.project.update({
+      where: { id: request.params.id },
+      data: { paused },
+    });
+    console.log(
+      `[projects] Project "${project.name}" ${paused ? "paused" : "unpaused"} by user ${userId}`
+    );
+    return reply.send(project);
+  });
+
   // Delete a project
   app.delete<{ Params: { id: string } }>(
     "/api/projects/:id",
