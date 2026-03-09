@@ -168,6 +168,7 @@ model TweetQueue {
   content     String
   tone        String           @default("sharp")
   status      TweetQueueStatus @default(PENDING)
+  tweetUrl    String?          @map("tweet_url")
   generatedAt DateTime         @default(now()) @map("generated_at")
   postedAt    DateTime?        @map("posted_at")
   postedBy    String?          @map("posted_by")

@@ -180,7 +180,7 @@ export const api = {
         const query = params.toString();
         return fetchApi<QueuedTweetsResponse>(`/api/admin/tweets${query ? `?${query}` : ""}`);
       },
-      update: (id: string, data: { content?: string; status?: string }) =>
+      update: (id: string, data: { content?: string; status?: string; tweetUrl?: string }) =>
         fetchApi<QueuedTweet>(`/api/admin/tweets/${id}`, {
           method: "PATCH",
           body: JSON.stringify(data),
@@ -430,6 +430,7 @@ export interface QueuedTweet {
   content: string;
   tone: string;
   status: "PENDING" | "POSTED" | "DELETED";
+  tweetUrl: string | null;
   generatedAt: string;
   postedAt: string | null;
   postedBy: string | null;

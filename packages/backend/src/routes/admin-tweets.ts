@@ -40,12 +40,12 @@ export async function adminTweetRoutes(app: FastifyInstance) {
     return reply.send({ tweets, total, page: parseInt(page), limit: parseInt(limit) });
   });
 
-  // Update a queued tweet (edit content, change status)
+  // Update a queued tweet (edit content, change status, set tweet URL)
   app.patch<{
     Params: { id: string };
-    Body: { content?: string; status?: string };
+    Body: { content?: string; status?: string; tweetUrl?: string };
   }>("/api/admin/tweets/:id", async (request, reply) => {
-    const { content, status } = request.body;
+    const { content, status, tweetUrl } = request.body;
     const data: Record<string, unknown> = {};
 
     if (content !== undefined) {
@@ -53,6 +53,11 @@ export async function adminTweetRoutes(app: FastifyInstance) {
         return reply.code(400).send({ error: "Tweet exceeds 280 characters" });
       }
       data.content = content;
+    }
+
+    if (tweetUrl !== undefined) {
+      // Allow empty string to clear, or a valid x.com/twitter.com URL
+      data.tweetUrl = tweetUrl || null;
     }
 
     if (status !== undefined) {

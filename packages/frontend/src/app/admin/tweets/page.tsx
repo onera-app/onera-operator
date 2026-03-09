@@ -9,17 +9,22 @@ import { Badge } from "@/components/ui/badge";
 import { formatRelativeTime } from "@/lib/utils";
 
 type StatusFilter = "PENDING" | "POSTED" | "DELETED" | "ALL";
+const PAGE_SIZE = 15;
 
 export default function AdminTweetsPage() {
   const { user, isLoaded } = useUser();
   const router = useRouter();
   const [tweets, setTweets] = useState<QueuedTweet[]>([]);
   const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
   const [filter, setFilter] = useState<StatusFilter>("PENDING");
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editContent, setEditContent] = useState("");
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  // Tweet URL input state — tracks which tweet is having its URL edited
+  const [urlEditingId, setUrlEditingId] = useState<string | null>(null);
+  const [urlEditValue, setUrlEditValue] = useState("");
 
   // Check admin access
   useEffect(() => {
@@ -33,7 +38,10 @@ export default function AdminTweetsPage() {
 
   const fetchTweets = useCallback(async () => {
     try {
-      const filters: { status?: string } = {};
+      const filters: { status?: string; page?: number; limit?: number } = {
+        page,
+        limit: PAGE_SIZE,
+      };
       if (filter !== "ALL") filters.status = filter;
       const data = await api.admin.tweets.list(filters);
       setTweets(data.tweets);
@@ -43,12 +51,17 @@ export default function AdminTweetsPage() {
     } finally {
       setLoading(false);
     }
-  }, [filter]);
+  }, [filter, page]);
 
   useEffect(() => {
     setLoading(true);
     fetchTweets();
   }, [fetchTweets]);
+
+  // Reset to page 1 when filter changes
+  useEffect(() => {
+    setPage(1);
+  }, [filter]);
 
   const handleMarkPosted = async (id: string) => {
     setActionLoading(id);
@@ -102,6 +115,24 @@ export default function AdminTweetsPage() {
     window.open(url, "_blank");
   };
 
+  const startUrlEdit = (tweet: QueuedTweet) => {
+    setUrlEditingId(tweet.id);
+    setUrlEditValue(tweet.tweetUrl || "");
+  };
+
+  const handleSaveUrl = async (id: string) => {
+    setActionLoading(id);
+    try {
+      await api.admin.tweets.update(id, { tweetUrl: urlEditValue.trim() });
+      setUrlEditingId(null);
+      await fetchTweets();
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const totalPages = Math.ceil(total / PAGE_SIZE);
+
   if (!isLoaded || !user) {
     return (
       <div className="flex h-screen items-center justify-center">
@@ -128,7 +159,7 @@ export default function AdminTweetsPage() {
           </Button>
         </div>
         <p className="text-xs text-muted-foreground">
-          Review AI-generated tweets and post them manually on X.
+          Review AI-generated tweets and post them manually on X. Latest tweets shown first.
         </p>
       </div>
 
@@ -149,8 +180,9 @@ export default function AdminTweetsPage() {
             {s === "ALL" ? "All" : s.charAt(0) + s.slice(1).toLowerCase()}
           </Button>
         ))}
-        <span className="ml-auto text-[10px] text-muted-foreground">
+        <span className="ml-auto text-[10px] text-muted-foreground font-mono">
           {total} tweet{total !== 1 ? "s" : ""}
+          {totalPages > 1 && ` · page ${page}/${totalPages}`}
         </span>
       </div>
 
@@ -160,7 +192,7 @@ export default function AdminTweetsPage() {
           <span className="text-xs text-muted-foreground animate-pulse">Loading tweets...</span>
         </div>
       ) : tweets.length === 0 ? (
-        <div className="border border-dashed border-border p-8 text-center bp-corners">
+        <div className="border border-dashed border-border p-8 text-center">
           <p className="text-xs text-muted-foreground">
             No {filter !== "ALL" ? filter.toLowerCase() : ""} tweets in the queue.
           </p>
@@ -254,6 +286,56 @@ export default function AdminTweetsPage() {
                 </>
               )}
 
+              {/* Tweet URL — show link if set, or edit input */}
+              {urlEditingId === tweet.id ? (
+                <div className="flex items-center gap-2 pt-1">
+                  <span className="text-[10px] text-muted-foreground font-mono shrink-0">URL:</span>
+                  <input
+                    type="url"
+                    value={urlEditValue}
+                    onChange={(e) => setUrlEditValue(e.target.value)}
+                    placeholder="https://x.com/onerachat/status/..."
+                    className="flex-1 bg-background border border-dashed border-border px-2 py-1 text-[11px] font-mono focus:outline-none focus:border-primary"
+                  />
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-6 px-2 text-[10px]"
+                    onClick={() => setUrlEditingId(null)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    size="sm"
+                    className="h-6 px-2 text-[10px]"
+                    onClick={() => handleSaveUrl(tweet.id)}
+                    disabled={actionLoading === tweet.id}
+                  >
+                    Save
+                  </Button>
+                </div>
+              ) : tweet.tweetUrl ? (
+                <div className="flex items-center gap-2 pt-1">
+                  <span className="text-[10px] text-muted-foreground font-mono shrink-0">URL:</span>
+                  <a
+                    href={tweet.tweetUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[11px] text-primary underline underline-offset-2 hover:text-primary/80 font-mono truncate"
+                  >
+                    {tweet.tweetUrl}
+                  </a>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-5 px-1 text-[9px] text-muted-foreground hover:text-primary"
+                    onClick={() => startUrlEdit(tweet)}
+                  >
+                    [edit]
+                  </Button>
+                </div>
+              ) : null}
+
               {/* Actions */}
               {editingId !== tweet.id && (
                 <div className="flex items-center gap-2 pt-1 border-t border-dashed border-border/50">
@@ -283,6 +365,13 @@ export default function AdminTweetsPage() {
                       <Button
                         size="sm"
                         variant="outline"
+                        onClick={() => startUrlEdit(tweet)}
+                      >
+                        Add URL
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
                         onClick={() => handleRegenerate(tweet.id)}
                         disabled={actionLoading === tweet.id}
                       >
@@ -300,9 +389,21 @@ export default function AdminTweetsPage() {
                     </>
                   )}
                   {tweet.status === "POSTED" && (
-                    <span className="text-[10px] text-muted-foreground">
-                      Posted by admin
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] text-muted-foreground">
+                        Posted by admin
+                      </span>
+                      {!tweet.tweetUrl && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-6 px-2 text-[10px]"
+                          onClick={() => startUrlEdit(tweet)}
+                        >
+                          Add Tweet URL
+                        </Button>
+                      )}
+                    </div>
                   )}
                   {tweet.status === "DELETED" && (
                     <Button
@@ -318,6 +419,59 @@ export default function AdminTweetsPage() {
               )}
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between mt-6 pt-4 border-t border-dashed border-border">
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={page <= 1}
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            className="border-dashed"
+          >
+            &larr; Prev
+          </Button>
+          <div className="flex items-center gap-1">
+            {Array.from({ length: totalPages }, (_, i) => i + 1)
+              .filter((p) => {
+                // Show first, last, and pages near current
+                if (p === 1 || p === totalPages) return true;
+                if (Math.abs(p - page) <= 2) return true;
+                return false;
+              })
+              .reduce<(number | "...")[]>((acc, p, i, arr) => {
+                if (i > 0 && p - (arr[i - 1] as number) > 1) acc.push("...");
+                acc.push(p);
+                return acc;
+              }, [])
+              .map((p, i) =>
+                p === "..." ? (
+                  <span key={`dots-${i}`} className="text-[10px] text-muted-foreground px-1">...</span>
+                ) : (
+                  <Button
+                    key={p}
+                    size="sm"
+                    variant={p === page ? "default" : "ghost"}
+                    onClick={() => setPage(p as number)}
+                    className={p === page ? "" : "text-muted-foreground font-mono text-[10px]"}
+                  >
+                    {p}
+                  </Button>
+                )
+              )}
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={page >= totalPages}
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            className="border-dashed"
+          >
+            Next &rarr;
+          </Button>
         </div>
       )}
     </div>
