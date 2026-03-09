@@ -19,6 +19,40 @@ import {
 import { ACTION_CREDITS } from "../services/billing.service.js";
 import { getProjectOwner } from "../services/project.service.js";
 
+/** Verify the authenticated user owns a project. Returns true if valid, sends 404 and returns false otherwise. */
+async function verifyProjectOwnership(
+  projectId: string,
+  userId: string,
+  reply: import("fastify").FastifyReply
+): Promise<boolean> {
+  const project = await prisma.project.findFirst({
+    where: { id: projectId, userId },
+    select: { id: true },
+  });
+  if (!project) {
+    reply.code(404).send({ error: "Project not found" });
+    return false;
+  }
+  return true;
+}
+
+/** Verify the authenticated user owns the project a task belongs to. Returns the task if valid, sends 404 and returns null otherwise. */
+async function verifyTaskOwnership(
+  taskId: string,
+  userId: string,
+  reply: import("fastify").FastifyReply
+) {
+  const task = await getTask(taskId);
+  if (!task) {
+    reply.code(404).send({ error: "Task not found" });
+    return null;
+  }
+  if (!(await verifyProjectOwnership(task.projectId, userId, reply))) {
+    return null;
+  }
+  return task;
+}
+
 export async function taskRoutes(app: FastifyInstance) {
   // List tasks with optional filters
   app.get<{
@@ -33,6 +67,13 @@ export async function taskRoutes(app: FastifyInstance) {
   }>("/api/tasks", async (request, reply) => {
     const { projectId, status, category, priority, automatable, agentName } =
       request.query;
+
+    // Require projectId and verify ownership
+    if (!projectId) {
+      return reply.code(400).send({ error: "projectId is required" });
+    }
+    const userId = request.authUser!.id;
+    if (!(await verifyProjectOwnership(projectId, userId, reply))) return;
 
     const tasks = await listTasks({
       projectId,
@@ -54,6 +95,8 @@ export async function taskRoutes(app: FastifyInstance) {
       if (!projectId) {
         return reply.code(400).send({ error: "projectId is required" });
       }
+      const userId = request.authUser!.id;
+      if (!(await verifyProjectOwnership(projectId, userId, reply))) return;
       const metrics = await getTaskMetrics(projectId);
       return reply.send(metrics);
     }
@@ -63,10 +106,9 @@ export async function taskRoutes(app: FastifyInstance) {
   app.get<{ Params: { id: string } }>(
     "/api/tasks/:id",
     async (request, reply) => {
-      const task = await getTask(request.params.id);
-      if (!task) {
-        return reply.code(404).send({ error: "Task not found" });
-      }
+      const userId = request.authUser!.id;
+      const task = await verifyTaskOwnership(request.params.id, userId, reply);
+      if (!task) return;
       return reply.send(task);
     }
   );
@@ -93,6 +135,9 @@ export async function taskRoutes(app: FastifyInstance) {
         .send({ error: "projectId, title, description, category, and priority are required" });
     }
 
+    const userId = request.authUser!.id;
+    if (!(await verifyProjectOwnership(projectId, userId, reply))) return;
+
     const task = await createTask({
       projectId,
       title,
@@ -117,6 +162,9 @@ export async function taskRoutes(app: FastifyInstance) {
     if (!status) {
       return reply.code(400).send({ error: "status is required" });
     }
+
+    const userId = request.authUser!.id;
+    if (!(await verifyTaskOwnership(request.params.id, userId, reply))) return;
 
     try {
       const task = await updateTaskStatus(request.params.id, status, result);
@@ -159,6 +207,9 @@ export async function taskRoutes(app: FastifyInstance) {
       return reply.code(400).send({ error: "Invalid status value" });
     }
 
+    const userId = request.authUser!.id;
+    if (!(await verifyTaskOwnership(request.params.id, userId, reply))) return;
+
     try {
       const task = await updateTask(request.params.id, {
         title,
@@ -178,6 +229,8 @@ export async function taskRoutes(app: FastifyInstance) {
 
   // Delete a task
   app.delete<{ Params: { id: string } }>("/api/tasks/:id", async (request, reply) => {
+    const userId = request.authUser!.id;
+    if (!(await verifyTaskOwnership(request.params.id, userId, reply))) return;
     try {
       await deleteTask(request.params.id);
       return reply.code(204).send();
@@ -191,6 +244,8 @@ export async function taskRoutes(app: FastifyInstance) {
   app.get<{ Params: { id: string } }>(
     "/api/tasks/:id/logs",
     async (request, reply) => {
+      const userId = request.authUser!.id;
+      if (!(await verifyTaskOwnership(request.params.id, userId, reply))) return;
       const logs = await getExecutionLogs(request.params.id);
       return reply.send(logs);
     }
@@ -200,10 +255,9 @@ export async function taskRoutes(app: FastifyInstance) {
   app.post<{ Params: { id: string } }>(
     "/api/tasks/:id/retry",
     async (request, reply) => {
-      const task = await getTask(request.params.id);
-      if (!task) {
-        return reply.code(404).send({ error: "Task not found" });
-      }
+      const userId = request.authUser!.id;
+      const task = await verifyTaskOwnership(request.params.id, userId, reply);
+      if (!task) return;
 
       if (task.status !== "IN_PROGRESS" && task.status !== "FAILED") {
         return reply.code(400).send({
@@ -243,10 +297,9 @@ export async function taskRoutes(app: FastifyInstance) {
   app.post<{ Params: { id: string } }>(
     "/api/tasks/:id/execute",
     async (request, reply) => {
-      const task = await getTask(request.params.id);
-      if (!task) {
-        return reply.code(404).send({ error: "Task not found" });
-      }
+      const userId = request.authUser!.id;
+      const task = await verifyTaskOwnership(request.params.id, userId, reply);
+      if (!task) return;
 
       if (task.status === "IN_PROGRESS") {
         return reply.code(409).send({ error: "Task is already running. Use /retry to force-retry." });

@@ -1,5 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { getLatestReport, listReports } from "../services/report.service.js";
+import { prisma } from "@onera/database";
 
 export async function reportRoutes(app: FastifyInstance) {
   // Get the latest report for a project
@@ -9,6 +10,14 @@ export async function reportRoutes(app: FastifyInstance) {
       const { projectId } = request.query;
       if (!projectId) {
         return reply.code(400).send({ error: "projectId is required" });
+      }
+      const userId = request.authUser!.id;
+      const project = await prisma.project.findFirst({
+        where: { id: projectId, userId },
+        select: { id: true },
+      });
+      if (!project) {
+        return reply.code(404).send({ error: "Project not found" });
       }
       const report = await getLatestReport(projectId);
       if (!report) {
@@ -25,6 +34,14 @@ export async function reportRoutes(app: FastifyInstance) {
       const { projectId, limit } = request.query;
       if (!projectId) {
         return reply.code(400).send({ error: "projectId is required" });
+      }
+      const userId = request.authUser!.id;
+      const project = await prisma.project.findFirst({
+        where: { id: projectId, userId },
+        select: { id: true },
+      });
+      if (!project) {
+        return reply.code(404).send({ error: "Project not found" });
       }
       const parsedLimit = limit ? parseInt(limit, 10) : 30;
       if (Number.isNaN(parsedLimit)) {

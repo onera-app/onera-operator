@@ -34,8 +34,13 @@ declare module "fastify" {
 // short-lived Clerk JWT (which can expire mid-stream).
 // ---------------------------------------------------------------------------
 
-export const INTERNAL_SECRET =
-  process.env.INTERNAL_API_SECRET || "onera-internal-2026";
+const configuredSecret = process.env.INTERNAL_API_SECRET;
+if (!configuredSecret) {
+  console.warn(
+    "[auth] WARNING: INTERNAL_API_SECRET is not set. Internal service auth will be unavailable."
+  );
+}
+export const INTERNAL_SECRET = configuredSecret ?? "";
 
 // ---------------------------------------------------------------------------
 // In-memory user cache — avoids a DB upsert/findUnique on every request.

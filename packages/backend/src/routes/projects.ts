@@ -28,7 +28,10 @@ export async function projectRoutes(app: FastifyInstance) {
   app.get<{ Params: { id: string } }>(
     "/api/projects/:id",
     async (request, reply) => {
-      const project = await getProject(request.params.id);
+      const userId = request.authUser!.id;
+      const project = await prisma.project.findFirst({
+        where: { id: request.params.id, userId },
+      });
       if (!project) {
         return reply.code(404).send({ error: "Project not found" });
       }
@@ -253,6 +256,13 @@ export async function projectRoutes(app: FastifyInstance) {
       website?: string;
     };
   }>("/api/projects/:id", async (request, reply) => {
+    const userId = request.authUser!.id;
+    const existing = await prisma.project.findFirst({
+      where: { id: request.params.id, userId },
+    });
+    if (!existing) {
+      return reply.code(404).send({ error: "Project not found" });
+    }
     try {
       const project = await updateProject(request.params.id, request.body);
       return reply.send(project);
@@ -266,6 +276,13 @@ export async function projectRoutes(app: FastifyInstance) {
   app.delete<{ Params: { id: string } }>(
     "/api/projects/:id",
     async (request, reply) => {
+      const userId = request.authUser!.id;
+      const existing = await prisma.project.findFirst({
+        where: { id: request.params.id, userId },
+      });
+      if (!existing) {
+        return reply.code(404).send({ error: "Project not found" });
+      }
       try {
         await deleteProject(request.params.id);
         return reply.code(204).send();
