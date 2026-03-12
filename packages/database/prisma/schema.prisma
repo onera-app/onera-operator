@@ -49,6 +49,7 @@ model CreditTransaction {
 }
 
 enum CreditTransactionType {
+  SIGNUP_BONUS         // 20 free credits on first signup
   CARD_BONUS           // 50 free credits when user subscribes (trial start)
   PURCHASE             // Bought a credit pack (one-time top-up)
   AUTO_CHARGE          // Auto-charged when credits ran out

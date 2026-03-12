@@ -5,8 +5,13 @@ import { Button } from "@/components/ui/button";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { api, type BillingSummary, type CreditPack } from "@/lib/api-client";
 
-export function BillingSection() {
+interface BillingSectionProps {
+  initialCredits?: number | null;
+}
+
+export function BillingSection({ initialCredits }: BillingSectionProps = {}) {
   const [billing, setBilling] = useState<BillingSummary | null>(null);
+  const [fallbackCredits, setFallbackCredits] = useState<number | null>(initialCredits ?? null);
   const [purchasing, setPurchasing] = useState<string | null>(null);
   const [subscribing, setSubscribing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -15,15 +20,33 @@ export function BillingSection() {
     try {
       const data = await api.billing.summary();
       setBilling(data);
-    } catch {
-      // User may not have billing data yet
+    } catch (err) {
+      console.warn("[billing] Failed to fetch billing summary:", err instanceof Error ? err.message : err);
+      // Fallback: at least show credit balance from the simpler endpoint
+      try {
+        const { credits } = await api.users.credits();
+        setFallbackCredits(credits);
+      } catch {
+        // Both endpoints failed — likely auth not ready yet
+      }
     }
   }, []);
 
+  // Keep fallback in sync with prop when billing summary hasn't loaded yet
   useEffect(() => {
-    fetchBilling();
+    if (!billing && initialCredits != null) {
+      setFallbackCredits(initialCredits);
+    }
+  }, [initialCredits, billing]);
+
+  useEffect(() => {
+    // Small delay on initial load to let AuthInit set the token getter
+    const initialTimeout = setTimeout(fetchBilling, 100);
     const interval = setInterval(fetchBilling, 15000);
-    return () => clearInterval(interval);
+    return () => {
+      clearTimeout(initialTimeout);
+      clearInterval(interval);
+    };
   }, [fetchBilling]);
 
   async function handleSubscribe() {
@@ -59,7 +82,21 @@ export function BillingSection() {
           <span className="text-xs uppercase tracking-wider text-muted-foreground">
             Credits
           </span>
-          <span className="text-lg font-bold text-primary animate-pulse">--</span>
+          {fallbackCredits !== null ? (
+            <span
+              className={`text-xl font-bold ${
+                fallbackCredits <= 5
+                  ? "text-destructive"
+                  : fallbackCredits <= 20
+                    ? "text-yellow-500"
+                    : "text-primary"
+              }`}
+            >
+              {fallbackCredits.toLocaleString()}
+            </span>
+          ) : (
+            <span className="text-lg font-bold text-primary animate-pulse">--</span>
+          )}
         </div>
       </div>
     );

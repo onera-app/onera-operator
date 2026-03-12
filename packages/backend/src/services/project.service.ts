@@ -1,5 +1,6 @@
 import { prisma } from "@onera/database";
 import type { ProjectContext } from "@onera/shared";
+import { SIGNUP_BONUS_CREDITS } from "./billing.service.js";
 
 export async function listProjects(userId?: string) {
   return prisma.project.findMany({
@@ -47,6 +48,7 @@ export async function deleteProject(id: string) {
 
 /**
  * Ensure a user exists in the database (upsert from OAuth profile).
+ * New users receive a signup bonus of free credits.
  */
 export async function ensureUser(data: {
   id: string;
@@ -54,14 +56,17 @@ export async function ensureUser(data: {
   name?: string;
   image?: string;
 }) {
-  return prisma.user.upsert({
+  // Check if user already exists before upserting
+  const existing = await prisma.user.findUnique({ where: { id: data.id } });
+
+  const user = await prisma.user.upsert({
     where: { id: data.id },
     create: {
       id: data.id,
       email: data.email,
       name: data.name,
       image: data.image,
-      credits: 0, // 0 until card added
+      credits: SIGNUP_BONUS_CREDITS,
     },
     update: {
       email: data.email,
@@ -69,6 +74,21 @@ export async function ensureUser(data: {
       image: data.image,
     },
   });
+
+  // Record the signup bonus transaction for newly created users
+  if (!existing) {
+    await prisma.creditTransaction.create({
+      data: {
+        userId: user.id,
+        type: "SIGNUP_BONUS",
+        amount: SIGNUP_BONUS_CREDITS,
+        balance: SIGNUP_BONUS_CREDITS,
+        description: `Welcome bonus: ${SIGNUP_BONUS_CREDITS} free credits`,
+      },
+    });
+  }
+
+  return user;
 }
 
 export async function getUserCredits(userId: string): Promise<number> {

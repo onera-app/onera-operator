@@ -280,7 +280,7 @@ export function CompanyPanel({
       )}
 
       {/* Billing & Credits */}
-      <BillingSection />
+      <BillingSection initialCredits={credits} />
 
       {/* Pause / Run agent loop controls */}
       <div className="flex gap-2">

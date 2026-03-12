@@ -26,6 +26,7 @@ const LIVE_MEGA_ID         = process.env.DODO_MEGA_PRODUCT_ID || "";
 export const SUBSCRIPTION_PRODUCT_ID = isLive ? LIVE_SUBSCRIPTION_ID : TEST_SUBSCRIPTION_ID;
 export const SUBSCRIPTION_CREDITS_PER_MONTH = 500;
 export const TRIAL_BONUS_CREDITS = 50;
+export const SIGNUP_BONUS_CREDITS = 20;
 export const TRIAL_PERIOD_DAYS = 3;
 
 // ─── Credit Top-Up Packs (one-time purchases) ───────────────────
