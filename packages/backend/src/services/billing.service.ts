@@ -249,11 +249,27 @@ export async function getBillingStatus(userId: string) {
 
 // ─── Credit Transaction History ─────────────────────────────────
 export async function getCreditHistory(userId: string, limit = 50) {
-  return prisma.creditTransaction.findMany({
-    where: { userId },
-    orderBy: { createdAt: "desc" },
-    take: limit,
-  });
+  try {
+    return await prisma.creditTransaction.findMany({
+      where: { userId },
+      orderBy: { createdAt: "desc" },
+      take: limit,
+    });
+  } catch (err) {
+    // Prisma Client may fail to deserialize enum values added after generate.
+    // Fall back to raw SQL so the billing summary isn't completely broken.
+    console.warn("[billing] getCreditHistory Prisma query failed, using raw fallback:", err);
+    const rows = await prisma.$queryRaw<Array<Record<string, unknown>>>`
+      SELECT id, user_id AS "userId", type::text, amount, balance, description,
+             dodo_payment_id AS "dodoPaymentId", pack_slug AS "packSlug",
+             task_id AS "taskId", created_at AS "createdAt"
+      FROM credit_transactions
+      WHERE user_id = ${userId}
+      ORDER BY created_at DESC
+      LIMIT ${limit}
+    `;
+    return rows;
+  }
 }
 
 // ─── Tweet Rate Limiting (3/day/project) ────────────────────────

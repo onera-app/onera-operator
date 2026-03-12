@@ -264,11 +264,40 @@ export async function billingRoutes(app: FastifyInstance) {
     "/api/billing/me",
     async (request, reply) => {
       const userId = request.authUser!.id;
-      const summary = await getBillingSummary(userId);
-      if (!summary) {
-        return reply.code(404).send({ error: "User not found" });
+      try {
+        const summary = await getBillingSummary(userId);
+        if (!summary) {
+          return reply.code(404).send({ error: "User not found" });
+        }
+        return reply.send(summary);
+      } catch (err) {
+        request.log.error({ err, userId }, "Failed to fetch billing summary");
+        // Fallback: return at least the credit balance so the dashboard isn't broken
+        try {
+          const user = await prisma.user.findUnique({
+            where: { id: userId },
+            select: { credits: true },
+          });
+          return reply.send({
+            credits: user?.credits ?? 0,
+            hasSubscription: false,
+            subscriptionStatus: null,
+            isTrialing: false,
+            trialEndsAt: null,
+            hasCard: false,
+            autoChargeEnabled: true,
+            recentTransactions: [],
+            packs: CREDIT_PACKS.map((p) => ({
+              slug: p.slug,
+              name: p.name,
+              credits: p.credits,
+              price: p.price / 100,
+            })),
+          });
+        } catch {
+          return reply.code(500).send({ error: "Failed to fetch billing data" });
+        }
       }
-      return reply.send(summary);
     }
   );
 
