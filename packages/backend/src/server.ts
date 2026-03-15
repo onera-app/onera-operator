@@ -24,6 +24,7 @@ const PUBLIC_PATHS = new Set([
   "/api/public/ask",
   "/api/billing/webhooks",
   "/api/webhooks/email",
+  "/api/webhooks/email/inbound",
 ]);
 
 function isPublicPath(path: string): boolean {

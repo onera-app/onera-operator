@@ -1,0 +1,14 @@
+{
+  "name": "@onera/smtp-receiver",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js"
+  },
+  "dependencies": {
+    "smtp-server": "^3.13.0",
+    "mailparser": "^3.7.1"
+  }
+}
