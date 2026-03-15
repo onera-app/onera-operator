@@ -61,20 +61,26 @@ enum CreditTransactionType {
 
 // ─── Core Models ─────────────────────────────────────────────────
 
+enum ProjectType {
+  COMPANY
+  INDIVIDUAL
+}
+
 model Project {
-  id          String   @id @default(cuid())
-  userId      String   @map("user_id")
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id          String      @id @default(cuid())
+  userId      String      @map("user_id")
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   name        String
+  type        ProjectType @default(COMPANY) @map("project_type")
   description String?
   product     String?
-  targetUsers String?  @map("target_users")
+  targetUsers String?     @map("target_users")
   competitors String?
   goals       String?
   website      String?
-  companyEmail String?  @unique @map("company_email")
-  logoUrl      String?  @map("logo_url")
-  paused       Boolean  @default(false)
+  companyEmail String?    @unique @map("company_email")
+  logoUrl      String?    @map("logo_url")
+  paused       Boolean    @default(false)
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 

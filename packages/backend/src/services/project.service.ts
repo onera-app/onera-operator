@@ -133,10 +133,10 @@ export async function getProjectOwner(
  * when the caller already has the project in memory.
  */
 export async function buildProjectContext(
-  projectOrId: string | { id: string; name: string; description: string | null; product: string | null; targetUsers: string | null; competitors: string | null; goals: string | null; website: string | null; companyEmail: string | null; user?: { email: string | null; name: string | null } | null }
+  projectOrId: string | { id: string; name: string; type?: string; description: string | null; product: string | null; targetUsers: string | null; competitors: string | null; goals: string | null; website: string | null; companyEmail: string | null; user?: { email: string | null; name: string | null } | null }
 ): Promise<string> {
   let project: {
-    id: string; name: string; description: string | null; product: string | null;
+    id: string; name: string; type?: string; description: string | null; product: string | null;
     targetUsers: string | null; competitors: string | null; goals: string | null;
     website: string | null; companyEmail: string | null;
     user?: { email: string | null; name: string | null } | null;
@@ -161,18 +161,23 @@ export async function buildProjectContext(
     }
   }
 
+  const isIndividual = project.type === "INDIVIDUAL";
+
   const parts = [
     `Project ID: ${project.id}`,
-    `Startup Name: ${project.name}`,
+    `Project Type: ${isIndividual ? "INDIVIDUAL" : "COMPANY"}`,
+    isIndividual
+      ? `Person Name: ${project.name}`
+      : `Startup Name: ${project.name}`,
   ];
 
   if (project.description) parts.push(`Description: ${project.description}`);
-  if (project.product) parts.push(`Product: ${project.product}`);
+  if (project.product) parts.push(`Product/Services: ${project.product}`);
   if (project.targetUsers) parts.push(`Target Users: ${project.targetUsers}`);
   if (project.website) parts.push(`Website: ${project.website}`);
   if (project.companyEmail) parts.push(`Company Email: ${project.companyEmail}`);
-  if (project.user?.email) parts.push(`Founder Email: ${project.user.email}`);
-  if (project.user?.name) parts.push(`Founder Name: ${project.user.name}`);
+  if (project.user?.email) parts.push(`${isIndividual ? "Personal" : "Founder"} Email: ${project.user.email}`);
+  if (project.user?.name) parts.push(`${isIndividual ? "Owner" : "Founder"} Name: ${project.user.name}`);
 
   if (project.competitors) {
     try {
