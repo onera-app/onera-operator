@@ -44,6 +44,9 @@ export function getModel(configOverride?: Partial<AIConfig>): LanguageModel {
 /**
  * Returns the premium (frontier) model for quality-critical tasks.
  * Falls back to the default model if AI_PREMIUM_MODEL is not configured.
+ *
+ * When the premium model hits a rate limit (HTTP 429 / "high demand" errors),
+ * it automatically retries the call with the default model (e.g. Kimi K2.5).
  */
 export function getPremiumModel(): LanguageModel {
   const premiumConfig = loadPremiumAIConfig();
@@ -69,8 +72,88 @@ export function getPremiumModel(): LanguageModel {
     `[onera-ai] Premium model: provider=${premiumConfig.provider} model=${premiumConfig.model} deployment=${premiumConfig.azureDeploymentName || "n/a"}`
   );
   cachedPremiumConfig = premiumConfig;
-  cachedPremiumModel = createModelForProvider(premiumConfig);
+
+  const primaryModel = createModelForProvider(premiumConfig);
+  cachedPremiumModel = createFallbackModel(primaryModel, () => getModel());
   return cachedPremiumModel;
+}
+
+/**
+ * Detects rate-limit or capacity errors from Azure OpenAI.
+ */
+function isRateLimitError(err: unknown): boolean {
+  if (!err) return false;
+  const msg = err instanceof Error ? err.message : String(err);
+  return (
+    msg.includes("429") ||
+    msg.includes("rate limit") ||
+    msg.includes("high demand") ||
+    msg.includes("exceeded") ||
+    msg.includes("throttl") ||
+    msg.includes("capacity") ||
+    msg.includes("overloaded") ||
+    msg.includes("peak load")
+  );
+}
+
+/**
+ * Wraps a primary LanguageModel with a fallback.
+ * If doGenerate or doStream fails with a rate-limit error, retries with the fallback model.
+ * Delegates all properties and methods to the primary, swaps to fallback only on rate-limit.
+ */
+function createFallbackModel(
+  primary: LanguageModel,
+  getFallback: () => LanguageModel
+): LanguageModel {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const p = primary as any;
+
+  const proxy = {
+    specificationVersion: p.specificationVersion,
+    provider: p.provider,
+    modelId: `${p.modelId}->fallback`,
+    defaultObjectGenerationMode: p.defaultObjectGenerationMode,
+    supportsImageUrls: p.supportsImageUrls,
+    supportsStructuredOutputs: p.supportsStructuredOutputs,
+    supportsUrl: p.supportsUrl,
+    supportedUrls: p.supportedUrls,
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    async doGenerate(params: any) {
+      try {
+        return await p.doGenerate(params);
+      } catch (err: unknown) {
+        if (isRateLimitError(err)) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const f = getFallback() as any;
+          console.warn(
+            `[onera-ai] Premium model rate-limited, falling back: ${p.modelId} → ${f.modelId}`
+          );
+          return await f.doGenerate(params);
+        }
+        throw err;
+      }
+    },
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    async doStream(params: any) {
+      try {
+        return await p.doStream(params);
+      } catch (err: unknown) {
+        if (isRateLimitError(err)) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const f = getFallback() as any;
+          console.warn(
+            `[onera-ai] Premium model rate-limited (stream), falling back: ${p.modelId} → ${f.modelId}`
+          );
+          return await f.doStream(params);
+        }
+        throw err;
+      }
+    },
+  };
+
+  return proxy as unknown as LanguageModel;
 }
 
 /**
