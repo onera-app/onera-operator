@@ -29,8 +29,8 @@ export async function runPlannerAgent(input: PlannerInput) {
       "\n- Generate 3-7 tasks per planning cycle" +
       "\n- Prioritize based on impact and urgency" +
       "\n- Mark tasks as automatable if an agent can handle them" +
-      "\n- Assign agentName for automatable tasks: twitter, outreach, research, or engineer" +
-      "\n- Categories: GROWTH, MARKETING, OUTREACH, PRODUCT, ANALYTICS, OPERATIONS, RESEARCH, ENGINEERING, TWITTER" +
+      "\n- Assign agentName for automatable tasks: twitter, outreach, or research" +
+      "\n- Categories: GROWTH, MARKETING, OUTREACH, PRODUCT, ANALYTICS, OPERATIONS, RESEARCH, TWITTER" +
       "\n- Priorities: CRITICAL, HIGH, MEDIUM, LOW" +
       "\n- Don't repeat recently completed work" +
       "\n- Balance between quick wins and strategic initiatives" +
@@ -40,11 +40,7 @@ export async function runPlannerAgent(input: PlannerInput) {
       "\n- NEVER suggest creating new accounts, registering domains, or setting up infrastructure" +
       "\n- Focus on content creation, research, outreach emails, competitive analysis, and engineering tasks" +
       "\n- OUTREACH tasks: each run should target 10 emails. Include 'Send 10 outreach emails' in the task description so the agent knows the target count." +
-      "\n- Engineering tasks (agentName: engineer) should automate what a startup COO would want built:" +
-      "\n  * Growth automation: SEO audit scripts, conversion funnel analysis, landing page performance scrapers, A/B test result analyzers, lead scoring calculators" +
-      "\n  * Operational efficiency: report generators, data pipeline scripts, CRM data cleanup, workflow automation, KPI dashboard builders, churn analysis" +
-      "\n  * Competitive intelligence: competitor pricing scrapers, feature comparison matrices, market size estimators, trend analysis scripts, review sentiment analyzers" +
-      "\n- ENGINEERING tasks must produce actionable output the founder can use immediately (a report, a dataset, a working script, a visualization)" +
+      "\n- DO NOT create engineering tasks. The engineer agent is currently disabled." +
       "\n- Prefer tasks that save the founder hours of manual work or surface insights they wouldn't find on their own" +
       "\n\nTWITTER TASK guidelines:" +
       "\n- Twitter tasks are portfolio showcase tweets. We tweet FROM @onerachat ABOUT the onboarded startup." +

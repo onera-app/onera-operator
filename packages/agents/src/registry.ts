@@ -40,8 +40,9 @@ const executionAgents: Record<string, AgentExecutor> = {
     runOutreachAgent(input as OutreachAgentInput),
   research: (input: AgentExecutionInput) =>
     runResearchAgent(input as ResearchAgentInput),
-  engineer: (input: AgentExecutionInput) =>
-    runEngineerAgent(input as EngineerAgentInput),
+  // engineer agent disabled — re-enable by uncommenting:
+  // engineer: (input: AgentExecutionInput) =>
+  //   runEngineerAgent(input as EngineerAgentInput),
 };
 
 export function getExecutionAgent(
