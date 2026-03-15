@@ -1,84 +1,31 @@
 import { AbsoluteFill, useCurrentFrame, interpolate, spring, useVideoConfig } from "remotion";
-import { BlueprintBackground } from "../components/BlueprintBackground";
-import { CornerMarks, Crosshair, Annotation } from "../components/BlueprintElements";
-import { serifFont, sansFont, monoFont } from "../fonts";
+import { InfiniteGrid } from "../components/InfiniteGrid";
+import { ProductBackground } from "../components/ProductBackground";
+import { sansFont } from "../fonts";
 import { C } from "../colors";
 
-const AgentCard = ({
-  title,
-  role,
-  icon,
-  delay,
-}: {
-  title: string;
-  role: string;
-  icon: string;
-  delay: number;
-}) => {
+const AgentCard = ({ title, delay }: { title: string, delay: number }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const enter = spring({ frame: frame - delay, fps, config: { damping: 14, stiffness: 80 } });
+  // delay is passed in fps-relative frames already
+  const scale = spring({ frame: frame - delay, fps, config: { damping: 14 } });
 
-  if (frame < delay - 5) return null;
+  if (frame < delay) return null;
 
   return (
-    <div
-      style={{
-        transform: `scale(${enter}) translateY(${interpolate(enter, [0, 1], [30, 0])}px)`,
-        opacity: enter,
-        border: `1px solid ${C.wire}`,
-        backgroundColor: "rgba(120, 180, 255, 0.04)",
-        padding: "28px 24px",
-        width: 260,
-        position: "relative",
-        display: "flex",
-        flexDirection: "column",
-        gap: 16,
-      }}
-    >
-      <CornerMarks color={C.wire} size={10} />
-
-      {/* Icon + Title */}
-      <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-        <div
-          style={{
-            width: 36,
-            height: 36,
-            border: `1px solid ${C.wire}`,
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            fontSize: 18,
-          }}
-        >
-          {icon}
-        </div>
-        <div
-          style={{
-            fontFamily: sansFont,
-            fontWeight: 700,
-            fontSize: 18,
-            color: C.textPrimary,
-          }}
-        >
-          {title}
-        </div>
-      </div>
-
-      {/* Role label */}
-      <div
-        style={{
-          fontFamily: monoFont,
-          fontSize: 11,
-          color: C.accent,
-          letterSpacing: "0.15em",
-          textTransform: "uppercase",
-          borderTop: `1px solid ${C.wireDim}`,
-          paddingTop: 12,
-        }}
-      >
-        [ {role} ]
-      </div>
+    <div style={{
+      transform: `scale(${scale})`,
+      backgroundColor: "#fff",
+      border: `1.5px solid ${C.border}`,
+      borderRadius: 24,
+      padding: "20px 40px",
+      display: "flex",
+      alignItems: "center",
+      gap: 16,
+      boxShadow: `0 20px 40px ${C.shadow}`
+    }}>
+      <div style={{ width: 14, height: 14, borderRadius: "50%", backgroundColor: C.primary }} />
+      <div style={{ fontFamily: sansFont, fontWeight: 700, fontSize: 32, color: C.foreground }}>{title}</div>
     </div>
   );
 };
@@ -87,79 +34,45 @@ export const S4_OneraOperator = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
-  const titleOpacity = interpolate(frame, [15, 50], [0, 1], { extrapolateRight: "clamp" });
-  const titleY = spring({ frame: frame - 10, fps, config: { damping: 14 } });
+  // 5-second sequence — all keyframes fps-relative
+  const f15 = Math.round(fps * 15 / 30);
+  const totalFrames = Math.round(fps * 150 / 30); // 5s
+
+  const titleOpacity = interpolate(frame, [0, f15], [0, 1], { extrapolateRight: "clamp" });
+  const titleScale = interpolate(frame, [0, totalFrames], [0.9, 1], { extrapolateRight: "clamp" });
+
+  // Agent card pop-in delays — scaled to fps
+  const d1 = Math.round(fps * 30 / 30);
+  const d2 = Math.round(fps * 45 / 30);
+  const d3 = Math.round(fps * 60 / 30);
+  const d4 = Math.round(fps * 75 / 30);
 
   return (
-    <BlueprintBackground>
-      <Crosshair x="50%" y="50%" size={600} rotation={frame * 0.02} opacity={0.04} />
-      <Annotation text="scene_04 / onera_operator" x={60} y={40} opacity={0.3} />
+    <ProductBackground>
+      <InfiniteGrid scrollSpeed={4} explosionFrame={-100} />
 
       <AbsoluteFill style={{ justifyContent: "center", alignItems: "center", padding: 80 }}>
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: 60,
-            width: "100%",
-          }}
-        >
-          {/* Title block */}
-          <div
-            style={{
-              opacity: titleOpacity,
-              transform: `translateY(${interpolate(titleY, [0, 1], [40, 0])}px)`,
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              gap: 16,
-            }}
-          >
-            <h1
-              style={{
-                fontFamily: sansFont,
-                fontWeight: 900,
-                fontSize: 110,
-                color: C.textPrimary,
-                margin: 0,
-                letterSpacing: "-0.03em",
-                textShadow: `0 0 80px rgba(120, 180, 255, 0.2)`,
-              }}
-            >
-              Onera Operator
-            </h1>
-            <div
-              style={{
-                fontFamily: monoFont,
-                fontSize: 22,
-                color: C.accent,
-                letterSpacing: "0.25em",
-                textTransform: "uppercase",
-                fontWeight: 700,
-              }}
-            >
-              Your AI COO
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 80, width: "100%" }}>
+
+          <div style={{ opacity: titleOpacity, transform: `scale(${titleScale})`, display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}>
+            <div style={{ fontFamily: sansFont, fontSize: 32, color: C.textSecondary, letterSpacing: "0.2em", fontWeight: 500 }}>
+              MEET YOUR
             </div>
+            <h1 style={{ fontFamily: sansFont, fontWeight: 900, fontSize: 180, color: C.primary, margin: 0, letterSpacing: "-0.04em" }}>
+              AI COO.
+            </h1>
           </div>
 
-          {/* Agent cards row */}
-          <div
-            style={{
-              display: "flex",
-              gap: 28,
-              flexWrap: "wrap",
-              justifyContent: "center",
-              maxWidth: 1400,
-            }}
-          >
-            <AgentCard title="Research" role="Finds Leads & Markets" icon="🔍" delay={150} />
-            <AgentCard title="Outreach" role="Writes & Sends Email" icon="📧" delay={210} />
-            <AgentCard title="Twitter" role="Posts Content Daily" icon="🐦" delay={270} />
-            <AgentCard title="Engineer" role="Builds Code & Tools" icon="⚡" delay={330} />
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24, maxWidth: 1000 }}>
+            {/* Rapid fire pop-ins */}
+            <AgentCard title="Research" delay={d1} />
+            <AgentCard title="Outreach" delay={d2} />
+            <AgentCard title="Social" delay={d3} />
+            <AgentCard title="Engineer" delay={d4} />
           </div>
+
         </div>
       </AbsoluteFill>
-    </BlueprintBackground>
+    </ProductBackground>
   );
 };

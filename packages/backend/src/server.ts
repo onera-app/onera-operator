@@ -13,6 +13,9 @@ import { userRoutes } from "./routes/users.js";
 import { publicRoutes } from "./routes/public.js";
 import { billingRoutes } from "./routes/billing.js";
 import { adminTweetRoutes } from "./routes/admin-tweets.js";
+import { adminRoutes } from "./routes/admin.js";
+import { conversationRoutes } from "./routes/conversations.js";
+import { emailWebhookRoutes } from "./routes/webhooks-email.js";
 
 // Routes that do NOT require authentication
 const PUBLIC_PATHS = new Set([
@@ -20,6 +23,7 @@ const PUBLIC_PATHS = new Set([
   "/api/public/live",
   "/api/public/ask",
   "/api/billing/webhooks",
+  "/api/webhooks/email",
 ]);
 
 function isPublicPath(path: string): boolean {
@@ -60,6 +64,9 @@ export async function buildServer() {
   await app.register(publicRoutes);
   await app.register(billingRoutes);
   await app.register(adminTweetRoutes);
+  await app.register(adminRoutes);
+  await app.register(conversationRoutes);
+  await app.register(emailWebhookRoutes);
 
   return app;
 }

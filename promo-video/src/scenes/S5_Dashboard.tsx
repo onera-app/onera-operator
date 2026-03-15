@@ -1,54 +1,32 @@
 import { AbsoluteFill, useCurrentFrame, interpolate, spring, useVideoConfig } from "remotion";
-import { BlueprintBackground } from "../components/BlueprintBackground";
+import { ProductBackground } from "../components/ProductBackground";
 import { DashboardMock } from "../components/DashboardMock";
-import { Annotation } from "../components/BlueprintElements";
-import { sansFont, monoFont } from "../fonts";
-import { C } from "../colors";
 
 export const S5_Dashboard = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
-  const dashboardY = spring({ frame: frame - 15, fps, config: { damping: 14 } });
-  const textOpacity = interpolate(frame, [60, 90], [0, 1], { extrapolateRight: "clamp" });
+  // 7-second sequence — all keyframes fps-relative
+  const f10 = Math.round(fps * 10 / 30);
+  const totalFrames = Math.round(fps * 210 / 30); // 7s
+
+  const dashboardY = spring({ frame: frame - f10, fps, config: { damping: 14 } });
+
+  // Slow zoom out to show full dashboard
+  const scale = interpolate(frame, [0, totalFrames], [0.95, 0.85], { extrapolateRight: "clamp" });
 
   return (
-    <BlueprintBackground>
-      <Annotation text="scene_05 / dashboard" x={60} y={40} opacity={0.3} />
+    <ProductBackground>
+      <AbsoluteFill style={{ justifyContent: "center", alignItems: "center" }}>
 
-      <AbsoluteFill
-        style={{
-          justifyContent: "center",
-          alignItems: "center",
-          flexDirection: "column",
-          gap: 32,
-        }}
-      >
-        {/* Title */}
-        <div
-          style={{
-            opacity: textOpacity,
-            fontFamily: sansFont,
-            fontWeight: 700,
-            fontSize: 40,
-            color: C.textPrimary,
-            textAlign: "center",
-            textShadow: `0 0 40px rgba(120, 180, 255, 0.2)`,
-          }}
-        >
-          Wake up to everything done.
-        </div>
-
-        {/* Dashboard mock */}
-        <div
-          style={{
-            transform: `translateY(${interpolate(dashboardY, [0, 1], [300, 0])}px) scale(0.92)`,
-            transformOrigin: "center top",
-          }}
-        >
+        <div style={{
+          transform: `translateY(${interpolate(dashboardY, [0, 1], [400, 0])}px) scale(${scale})`,
+          transformOrigin: "center center",
+        }}>
           <DashboardMock />
         </div>
+
       </AbsoluteFill>
-    </BlueprintBackground>
+    </ProductBackground>
   );
 };

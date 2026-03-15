@@ -12,21 +12,20 @@ import { C } from "./colors";
 
 export const OneraPromo = () => {
   const { fps } = useVideoConfig();
-  const fadeDur = Math.round(0.5 * fps);
+  const transitionDur = Math.round(0.3 * fps); // Fast 0.3s transitions
 
-  // Audio total duration: ~103.2s = ~3096 frames @ 30fps (1.2x speed ElevenLabs)
-  // Distributed proportionally to match voiceover pacing:
-  const d1 = 697;  // The Grind (~23.2s)
-  const d2 = 577;  // Breaking Point (~19.2s)
-  const d3 = 522;  // The Shift (~17.4s)
-  const d4 = 577;  // Onera Operator (~19.2s)
-  const d5 = 367;  // Dashboard (~12.2s)
-  const d6 = 356;  // CTA (~11.9s)
-  // Total = 3096
+  // Total Duration: 30 seconds = 1800 frames @ 60fps
+  const d1 = Math.round(5 * fps);   // The Grind (5s)
+  const d2 = Math.round(4 * fps);   // Breaking Point (4s)
+  const d3 = Math.round(4 * fps);   // Not a Chatbot (4s)
+  const d4 = Math.round(5 * fps);   // Onera Reveal (5s)
+  const d5 = Math.round(7 * fps);   // Dashboard Walkthrough (7s)
+  const d6 = Math.round(5 * fps);   // CTA (5s)
+  // Total ~1800
 
   return (
     <AbsoluteFill style={{ backgroundColor: C.bg }}>
-      {/* Voiceover — replace public/voiceover.mp3 with your Azure TTS file */}
+      {/* Audio: Ensure you have a high-energy 30s track or voiceover */}
       <Audio src={staticFile("voiceover.mp3")} />
 
       <TransitionSeries>
@@ -34,31 +33,31 @@ export const OneraPromo = () => {
           <S1_TheGrind />
         </TransitionSeries.Sequence>
 
-        <TransitionSeries.Transition presentation={fade()} timing={linearTiming({ durationInFrames: fadeDur })} />
+        <TransitionSeries.Transition presentation={fade()} timing={linearTiming({ durationInFrames: transitionDur })} />
 
         <TransitionSeries.Sequence durationInFrames={d2}>
           <S2_BreakingPoint />
         </TransitionSeries.Sequence>
 
-        <TransitionSeries.Transition presentation={fade()} timing={linearTiming({ durationInFrames: fadeDur })} />
+        <TransitionSeries.Transition presentation={fade()} timing={linearTiming({ durationInFrames: transitionDur })} />
 
         <TransitionSeries.Sequence durationInFrames={d3}>
           <S3_TheShift />
         </TransitionSeries.Sequence>
 
-        <TransitionSeries.Transition presentation={fade()} timing={linearTiming({ durationInFrames: fadeDur })} />
+        <TransitionSeries.Transition presentation={fade()} timing={linearTiming({ durationInFrames: transitionDur })} />
 
         <TransitionSeries.Sequence durationInFrames={d4}>
           <S4_OneraOperator />
         </TransitionSeries.Sequence>
 
-        <TransitionSeries.Transition presentation={fade()} timing={linearTiming({ durationInFrames: fadeDur })} />
+        <TransitionSeries.Transition presentation={fade()} timing={linearTiming({ durationInFrames: transitionDur })} />
 
         <TransitionSeries.Sequence durationInFrames={d5}>
           <S5_Dashboard />
         </TransitionSeries.Sequence>
 
-        <TransitionSeries.Transition presentation={fade()} timing={linearTiming({ durationInFrames: fadeDur })} />
+        <TransitionSeries.Transition presentation={fade()} timing={linearTiming({ durationInFrames: transitionDur })} />
 
         <TransitionSeries.Sequence durationInFrames={d6}>
           <S6_CTA />

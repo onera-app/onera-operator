@@ -2,14 +2,14 @@ import { C } from "../colors";
 import { monoFont } from "../fonts";
 
 /**
- * Corner registration marks — white/cyan L-brackets on dark blueprint.
+ * Corner registration marks — Royal Blue L-brackets.
  */
-export const CornerMarks = ({ color = C.wire, size = 14, thickness = 2 }: { color?: string; size?: number; thickness?: number }) => (
+export const CornerMarks = ({ color = C.primary, size = 14, thickness = 2 }: { color?: string; size?: number; thickness?: number }) => (
   <>
-    <div style={{ position: "absolute", top: -1, left: -1, width: size, height: size, borderTop: `${thickness}px solid ${color}`, borderLeft: `${thickness}px solid ${color}` }} />
-    <div style={{ position: "absolute", bottom: -1, right: -1, width: size, height: size, borderBottom: `${thickness}px solid ${color}`, borderRight: `${thickness}px solid ${color}` }} />
-    <div style={{ position: "absolute", top: -1, right: -1, width: size, height: size, borderTop: `${thickness}px solid ${color}`, borderRight: `${thickness}px solid ${color}` }} />
-    <div style={{ position: "absolute", bottom: -1, left: -1, width: size, height: size, borderBottom: `${thickness}px solid ${color}`, borderLeft: `${thickness}px solid ${color}` }} />
+    <div style={{ position: "absolute", top: -1, left: -1, width: size, height: size, borderTop: `${thickness}px solid ${color}`, borderLeft: `${thickness}px solid ${color}`, pointerEvents: "none" }} />
+    <div style={{ position: "absolute", bottom: -1, right: -1, width: size, height: size, borderBottom: `${thickness}px solid ${color}`, borderRight: `${thickness}px solid ${color}`, pointerEvents: "none" }} />
+    <div style={{ position: "absolute", top: -1, right: -1, width: size, height: size, borderTop: `${thickness}px solid ${color}`, borderRight: `${thickness}px solid ${color}`, pointerEvents: "none" }} />
+    <div style={{ position: "absolute", bottom: -1, left: -1, width: size, height: size, borderBottom: `${thickness}px solid ${color}`, borderLeft: `${thickness}px solid ${color}`, pointerEvents: "none" }} />
   </>
 );
 
@@ -22,7 +22,7 @@ export const Crosshair = ({
   size = 80,
   rotation = 0,
   opacity = 0.2,
-  color = C.wire,
+  color = C.primary,
 }: {
   x: number | string;
   y: number | string;
@@ -94,41 +94,39 @@ export const Annotation = ({
       pointerEvents: "none",
     }}
   >
-    <div style={{ width: 24, height: 1, backgroundColor: C.wire }} />
-    <span style={{ fontFamily: monoFont, fontSize: 10, color: C.textMuted, letterSpacing: "0.15em", textTransform: "uppercase", whiteSpace: "nowrap" }}>
+    <div style={{ width: 24, height: 1, backgroundColor: C.primary }} />
+    <span style={{ fontFamily: monoFont, fontSize: 10, color: C.textMuted, letterSpacing: "0.15em", textTransform: "uppercase", whiteSpace: "nowrap", fontWeight: "bold" }}>
       {text}
     </span>
   </div>
 );
 
 /**
- * Blueprint panel — a wireframe box with corner marks, used to group content.
+ * Blueprint panel — a schematic box with corner marks.
  */
 export const WirePanel = ({
   children,
   width,
   padding = 32,
-  glow = false,
   style,
 }: {
   children: React.ReactNode;
   width?: number | string;
   padding?: number;
-  glow?: boolean;
   style?: React.CSSProperties;
 }) => (
   <div
     style={{
-      border: `1px solid ${glow ? C.wireGlow : C.wire}`,
-      backgroundColor: glow ? "rgba(120, 180, 255, 0.05)" : "rgba(255, 255, 255, 0.02)",
+      border: `2px solid ${C.primary}`,
+      backgroundColor: "white",
       padding,
       position: "relative",
       ...(width ? { width } : {}),
-      ...(glow ? { boxShadow: `0 0 40px rgba(120, 180, 255, 0.1), inset 0 0 40px rgba(120, 180, 255, 0.03)` } : {}),
+      boxShadow: "0 4px 12px rgba(0, 51, 204, 0.05)",
       ...style,
     }}
   >
-    <CornerMarks color={glow ? C.wireGlow : C.wire} />
+    <CornerMarks color={C.primary} />
     {children}
   </div>
 );

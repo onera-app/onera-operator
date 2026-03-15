@@ -3,6 +3,9 @@ import { getModelForAgent } from "@onera/ai";
 import {
   generateEmail,
   sendEmail,
+  sendFollowUp,
+  getEmailConversations,
+  replyToEmail,
   findLeads,
   notifyFounder,
   webSearch,
@@ -20,7 +23,8 @@ export interface OutreachAgentInput {
  * Email Outreach Agent
  *
  * Generates personalized cold outreach emails, finds leads, and queues emails.
- * Uses the generateEmail, sendEmail, and findLeads tools.
+ * Now with conversation awareness: can check for replies, send follow-ups, and respond to inbound messages.
+ * Uses the generateEmail, sendEmail, sendFollowUp, getEmailConversations, replyToEmail, and findLeads tools.
  */
 export async function runOutreachAgent(input: OutreachAgentInput) {
   const model = getModelForAgent("outreach");
@@ -37,7 +41,17 @@ export async function runOutreachAgent(input: OutreachAgentInput) {
       "mention the recipient's company by name, and include your company URL.\n\n" +
       "## Writing style\n" +
       "NEVER use dashes (--), em-dashes, or en-dashes in any output. Use periods, commas, or colons instead.\n\n" +
-      "## Workflow (follow this exactly)\n" +
+      "## Conversation Awareness\n" +
+      "Before starting new outreach, ALWAYS check existing conversations first:\n" +
+      "1. Call getEmailConversations with status='REPLIED' to find contacts who have responded. " +
+      "If there are replied conversations, PRIORITIZE responding to them over sending new outreach.\n" +
+      "2. Call getEmailConversations with status='ACTIVE' to check for conversations that might need follow-ups " +
+      "(sent more than 3 days ago with no reply).\n" +
+      "3. Use replyToEmail to respond to contacts who replied. Read their reply (includeMessages=true) " +
+      "and craft a thoughtful, contextual response.\n" +
+      "4. Use sendFollowUp to send follow-up emails in existing threads (keeps same subject thread).\n" +
+      "5. Only send NEW outreach emails if the task specifically asks for it, or after handling all replies and follow-ups.\n\n" +
+      "## Workflow for NEW outreach (follow this exactly)\n" +
       "1. FIRST, use webSearch to find REAL companies matching the target audience. " +
       "Search for companies in the right industry/niche. Do 1 to 3 searches with " +
       "different queries to get a good spread of results.\n" +
@@ -55,7 +69,8 @@ export async function runOutreachAgent(input: OutreachAgentInput) {
       "Set 'to' to the lead's email address from findLeads. " +
       "ALWAYS set 'from' to the Company Email from the startup context (e.g. companyname@onera.app). " +
       "ALWAYS set 'replyTo' to the Founder Email from the startup context. " +
-      "ALWAYS set 'projectId' to the Project ID from the startup context.\n" +
+      "ALWAYS set 'projectId' to the Project ID from the startup context. " +
+      "ALWAYS pass recipientName, recipientCompany, recipientRole, recipientCompanyUrl from the lead data.\n" +
       "   d. If sendEmail returns 'rejected', fix the issues and retry once.\n" +
       "4. After sending all emails, use notifyFounder to update the founder.\n\n" +
       "IMPORTANT: You MUST call sendEmail after each generateEmail. Do NOT batch all generates first. " +
@@ -65,15 +80,31 @@ export async function runOutreachAgent(input: OutreachAgentInput) {
       "DO NOT refuse to send because emails are 'unverified' or 'guessed'. They are valid role-based addresses " +
       "(e.g. founder@company.com, hello@company.com). If a lead has an email with an @ sign and a real company " +
       "domain, USE IT. Only skip leads where the email field is empty or literally 'unknown'.\n\n" +
+      "## Workflow for FOLLOW-UPS\n" +
+      "When the task mentions follow-ups or when you find stale conversations:\n" +
+      "1. Call getEmailConversations with status='ACTIVE' and includeMessages=true\n" +
+      "2. For conversations where the last outbound email was 3+ days ago with no reply, send a follow-up\n" +
+      "3. Use sendFollowUp with the conversationId. Write a brief, value-adding follow-up (not just 'checking in')\n" +
+      "4. Reference something specific from the original email or add new value\n\n" +
+      "## Workflow for REPLIES\n" +
+      "When you find conversations with status='REPLIED':\n" +
+      "1. Read the full conversation with includeMessages=true\n" +
+      "2. Understand what the contact said and what they need\n" +
+      "3. Use replyToEmail to send a contextual, helpful response\n" +
+      "4. If they asked a question, answer it. If they showed interest, suggest a call or next step\n" +
+      "5. Keep it conversational and helpful, not salesy\n\n" +
       "## Founder Notifications\n" +
       "After completing outreach, use notifyFounder to give the founder a quick update: " +
-      "how many leads you found, how many emails went out, and anything notable. " +
+      "how many leads you found, how many emails went out, how many replies you handled, and anything notable. " +
       "Extract the Founder Email, Company Email, and Startup Name from the startup context.\n" +
       "Write it like a Slack message to your cofounder: casual, direct, no fluff. " +
-      "Say 'sent 5 emails, 2 bounced' not 'I have successfully dispatched correspondence to 5 recipients'.",
+      "Say 'sent 5 emails, 2 bounced, replied to 1 interested lead' not 'I have successfully dispatched correspondence to 5 recipients'.",
     tools: {
       generateEmail,
       sendEmail,
+      sendFollowUp,
+      getEmailConversations,
+      replyToEmail,
       findLeads,
       notifyFounder,
       webSearch,
@@ -83,7 +114,8 @@ export async function runOutreachAgent(input: OutreachAgentInput) {
     prompt:
       `## Task\n${input.taskDescription}\n\n` +
       `## Startup Context\n${input.projectContext}\n\n` +
-      `Execute this outreach task. Find leads if needed, generate personalized emails, and send them.`,
+      `Execute this outreach task. First check for any replies that need responses, then handle follow-ups, ` +
+      `then find new leads and send outreach emails as needed.`,
     onStepFinish: (step) => {
       if (!input.onStep) return;
       if (step.text) {

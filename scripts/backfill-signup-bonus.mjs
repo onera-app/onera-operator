@@ -1,10 +1,10 @@
 /**
  * One-time backfill script:
- * Grants 20 free signup bonus credits to all existing users who never received them.
+ * Grants 200 free signup bonus credits to all existing users who never received them.
  *
  * Logic:
  *   - Finds all users who do NOT have a SIGNUP_BONUS credit transaction.
- *   - Gives each of them 20 credits and records the transaction.
+ *   - Gives each of them 200 credits and records the transaction.
  *
  * Usage:
  *   node scripts/backfill-signup-bonus.mjs
@@ -42,7 +42,7 @@ const { PrismaClient } = require("../node_modules/.pnpm/@prisma+client@6.19.2_pr
 
 const prisma = new PrismaClient();
 
-const SIGNUP_BONUS_CREDITS = 20;
+const SIGNUP_BONUS_CREDITS = 200;
 
 async function main() {
   console.log("=== Backfill Signup Bonus Credits ===\n");

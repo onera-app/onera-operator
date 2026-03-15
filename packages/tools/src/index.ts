@@ -1,7 +1,9 @@
 export { generateTweet } from "./generate-tweet.js";
 export { scheduleTweet } from "./schedule-tweet.js";
 export { generateEmail } from "./generate-email.js";
-export { sendEmail } from "./send-email.js";
+export { sendEmail, sendEmailCore } from "./send-email.js";
+export { sendFollowUp } from "./send-follow-up.js";
+export { getEmailConversations, replyToEmail } from "./get-email-conversations.js";
 export { competitorResearch } from "./competitor-research.js";
 export { findLeads } from "./find-leads.js";
 export { webSearch } from "./web-search.js";

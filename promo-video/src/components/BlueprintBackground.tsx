@@ -3,13 +3,14 @@ import { C } from "../colors";
 import { monoFont } from "../fonts";
 
 /**
- * Dark blueprint background with static grid lines, subtle glow vignette,
+ * OneraOS Light Blueprint Background
+ * Subtle Lavender-White paper with Royal Blue "ink" grid lines
  * and dimension annotations along the edges.
  */
 export const BlueprintBackground = ({ children }: { children?: React.ReactNode }) => {
-  // Grid line colors — very subtle, just barely visible
-  const fineLineColor = "rgba(255, 255, 255, 0.06)";
-  const majorLineColor = "rgba(255, 255, 255, 0.12)";
+  // Grid line colors — subtle Royal Blue tinted lines
+  const fineLineColor = "rgba(0, 51, 204, 0.05)";
+  const majorLineColor = "rgba(0, 51, 204, 0.1)";
 
   return (
     <AbsoluteFill
@@ -18,7 +19,7 @@ export const BlueprintBackground = ({ children }: { children?: React.ReactNode }
         overflow: "hidden",
       }}
     >
-      {/* Fine grid (60px) — static, no animation */}
+      {/* Fine grid (60px) — static */}
       <AbsoluteFill
         style={{
           backgroundImage: `
@@ -29,7 +30,7 @@ export const BlueprintBackground = ({ children }: { children?: React.ReactNode }
         }}
       />
 
-      {/* Major grid (240px = every 4th line, slightly brighter) — static */}
+      {/* Major grid (240px = every 4th line) — slightly brighter */}
       <AbsoluteFill
         style={{
           backgroundImage: `
@@ -40,19 +41,11 @@ export const BlueprintBackground = ({ children }: { children?: React.ReactNode }
         }}
       />
 
-      {/* Center glow vignette */}
+      {/* Blueprint vignette — subtle paper feel */}
       <AbsoluteFill
         style={{
-          background: `radial-gradient(ellipse 60% 50% at 50% 50%, ${C.bgGlow} 0%, transparent 100%)`,
-          opacity: 0.4,
-        }}
-      />
-
-      {/* Edge vignette (darker corners) */}
-      <AbsoluteFill
-        style={{
-          background: `radial-gradient(ellipse 80% 80% at 50% 50%, transparent 40%, ${C.bgDark} 100%)`,
-          opacity: 0.6,
+          background: `radial-gradient(ellipse 80% 80% at 50% 50%, transparent 40%, rgba(0, 51, 204, 0.02) 100%)`,
+          pointerEvents: "none",
         }}
       />
 
@@ -67,6 +60,7 @@ export const BlueprintBackground = ({ children }: { children?: React.ReactNode }
         fontFamily: monoFont,
         fontSize: 9,
         color: C.textMuted,
+        opacity: 0.6,
         letterSpacing: "0.15em",
         textTransform: "uppercase",
         pointerEvents: "none",
@@ -90,6 +84,7 @@ export const BlueprintBackground = ({ children }: { children?: React.ReactNode }
         fontFamily: monoFont,
         fontSize: 9,
         color: C.textMuted,
+        opacity: 0.6,
         letterSpacing: "0.15em",
         writingMode: "vertical-rl" as const,
         textOrientation: "mixed" as const,

@@ -173,7 +173,102 @@ export const api = {
       `/api/activity${projectId ? `?projectId=${encodeURIComponent(projectId)}` : ""}`
     ),
 
+  conversations: {
+    list: (projectId: string, opts?: { status?: string; limit?: number; page?: number }) => {
+      const params = new URLSearchParams();
+      if (opts?.status) params.set("status", opts.status);
+      if (opts?.limit) params.set("limit", String(opts.limit));
+      if (opts?.page) params.set("page", String(opts.page));
+      const query = params.toString();
+      return fetchApi<ConversationsResponse>(`/api/projects/${projectId}/conversations${query ? `?${query}` : ""}`);
+    },
+    get: (projectId: string, convId: string) =>
+      fetchApi<ConversationDetail>(`/api/projects/${projectId}/conversations/${convId}`),
+    stats: (projectId: string) =>
+      fetchApi<ConversationStats>(`/api/projects/${projectId}/conversations/stats`),
+  },
+
+  contacts: {
+    list: (projectId: string, opts?: { limit?: number; page?: number; search?: string }) => {
+      const params = new URLSearchParams();
+      if (opts?.limit) params.set("limit", String(opts.limit));
+      if (opts?.page) params.set("page", String(opts.page));
+      if (opts?.search) params.set("search", opts.search);
+      const query = params.toString();
+      return fetchApi<ContactsResponse>(`/api/projects/${projectId}/contacts${query ? `?${query}` : ""}`);
+    },
+  },
+
   admin: {
+    stats: () => fetchApi<AdminStats>("/api/admin/stats"),
+    users: {
+      list: (opts?: { page?: number; limit?: number; search?: string }) => {
+        const params = new URLSearchParams();
+        if (opts?.page) params.set("page", String(opts.page));
+        if (opts?.limit) params.set("limit", String(opts.limit));
+        if (opts?.search) params.set("search", opts.search);
+        const query = params.toString();
+        return fetchApi<AdminUsersResponse>(`/api/admin/users${query ? `?${query}` : ""}`);
+      },
+      get: (userId: string) => fetchApi<AdminUserDetail>(`/api/admin/users/${userId}`),
+      adjustCredits: (userId: string, amount: number, description: string) =>
+        fetchApi<{ credits: number; message: string }>(`/api/admin/users/${userId}/credits`, {
+          method: "POST",
+          body: JSON.stringify({ amount, description }),
+        }),
+    },
+    projects: {
+      list: (opts?: { page?: number; limit?: number; search?: string; userId?: string }) => {
+        const params = new URLSearchParams();
+        if (opts) {
+          Object.entries(opts).forEach(([key, value]) => {
+            if (value !== undefined) params.set(key, String(value));
+          });
+        }
+        const query = params.toString();
+        return fetchApi<AdminProjectsResponse>(`/api/admin/projects${query ? `?${query}` : ""}`);
+      },
+    },
+    emails: {
+      list: (opts?: { page?: number; limit?: number; status?: string; deliveryStatus?: string; direction?: string; projectId?: string }) => {
+        const params = new URLSearchParams();
+        if (opts) {
+          Object.entries(opts).forEach(([key, value]) => {
+            if (value !== undefined) params.set(key, String(value));
+          });
+        }
+        const query = params.toString();
+        return fetchApi<AdminEmailsResponse>(`/api/admin/emails${query ? `?${query}` : ""}`);
+      },
+    },
+    tasks: {
+      list: (opts?: { page?: number; limit?: number; status?: string; category?: string; agentName?: string; projectId?: string }) => {
+        const params = new URLSearchParams();
+        if (opts) {
+          Object.entries(opts).forEach(([key, value]) => {
+            if (value !== undefined) params.set(key, String(value));
+          });
+        }
+        const query = params.toString();
+        return fetchApi<AdminTasksResponse>(`/api/admin/tasks${query ? `?${query}` : ""}`);
+      },
+      update: (taskId: string, data: { status: string }) =>
+        fetchApi<Task>(`/api/admin/tasks/${taskId}`, {
+          method: "PATCH",
+          body: JSON.stringify(data),
+        }),
+    },
+    agents: () => fetchApi<AdminAgent[]>("/api/admin/agents"),
+    billing: (opts?: { page?: number; limit?: number; type?: string }) => {
+      const params = new URLSearchParams();
+      if (opts) {
+        Object.entries(opts).forEach(([key, value]) => {
+          if (value !== undefined) params.set(key, String(value));
+        });
+      }
+      const query = params.toString();
+      return fetchApi<AdminBillingResponse>(`/api/admin/billing${query ? `?${query}` : ""}`);
+    },
     tweets: {
       list: (filters?: { status?: string; projectId?: string; page?: number; limit?: number }) => {
         const params = new URLSearchParams();
@@ -281,11 +376,193 @@ export interface EmailLogEntry {
   toEmail: string;
   replyTo: string | null;
   subject: string;
-  body?: string; // excluded from list endpoint to save bandwidth
+  body?: string;
+  htmlBody?: string;
+  direction: "OUTBOUND" | "INBOUND";
   status: "SENT" | "FAILED" | "BLOCKED";
+  deliveryStatus: "PENDING" | "DELIVERED" | "BOUNCED" | "OPENED" | "CLICKED" | "FAILED";
   errorMessage: string | null;
-  type: "OUTREACH" | "DIGEST" | "NOTIFICATION";
+  type: "OUTREACH" | "DIGEST" | "NOTIFICATION" | "FOLLOW_UP" | "REPLY";
+  conversationId: string | null;
+  contactId: string | null;
+  messageId?: string | null;
+  inReplyTo?: string | null;
   sentAt: string;
+}
+
+// ─── Conversation types ──────────────────────────────────────────────────────
+
+export interface Contact {
+  id: string;
+  projectId: string;
+  email: string;
+  name: string | null;
+  company: string | null;
+  role: string | null;
+  companyUrl: string | null;
+  source: "OUTREACH" | "MANUAL" | "INBOUND";
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface EmailConversation {
+  id: string;
+  projectId: string;
+  contactId: string;
+  subject: string;
+  status: "ACTIVE" | "REPLIED" | "FOLLOW_UP" | "CLOSED";
+  lastActivityAt: string;
+  messageCount: number;
+  createdAt: string;
+  contact: Contact;
+  emailLogs?: EmailLogEntry[];
+}
+
+export interface ConversationsResponse {
+  conversations: (EmailConversation & {
+    emailLogs: EmailLogEntry[];
+  })[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export interface ConversationDetail extends EmailConversation {
+  emailLogs: EmailLogEntry[];
+}
+
+export interface ConversationStats {
+  conversations: { total: number; active: number; replied: number; followUp: number; closed: number };
+  emails: { totalSent: number; totalReceived: number; delivered: number; bounced: number };
+  rates: { replyRate: number; deliveryRate: number; bounceRate: number };
+}
+
+export interface ContactsResponse {
+  contacts: (Contact & {
+    _count: { conversations: number; emailLogs: number };
+    conversations: { id: string; status: string; lastActivityAt: string }[];
+  })[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+// ─── Admin types ─────────────────────────────────────────────────────────────
+
+export interface AdminStats {
+  users: { total: number };
+  projects: { total: number; active: number; paused: number };
+  tasks: { total: number; completed: number; failed: number; today: number; failRate: number };
+  emails: { total: number; today: number; conversations: number; replied: number; replyRate: number };
+  tweets: { total: number; today: number };
+  contacts: { total: number };
+  credits: { totalInCirculation: number; consumedToday: number };
+  agents: { name: string; displayName: string; status: string; lastRunAt: string | null; lastError: string | null; tasksCompleted: number }[];
+}
+
+export interface AdminUser {
+  id: string;
+  name: string | null;
+  email: string | null;
+  credits: number;
+  subscriptionStatus: string | null;
+  trialActivated: boolean;
+  trialEndsAt: string | null;
+  autoChargeEnabled: boolean;
+  createdAt: string;
+  _count: { projects: number; creditTransactions: number };
+}
+
+export interface AdminUserDetail extends AdminUser {
+  projects: {
+    id: string; name: string; website: string | null; paused: boolean;
+    companyEmail: string | null; createdAt: string;
+    _count: { tasks: number; emailLogs: number; tweetQueue: number };
+  }[];
+  creditTransactions: CreditTransaction[];
+}
+
+export interface AdminUsersResponse {
+  users: AdminUser[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export interface AdminProject {
+  id: string;
+  name: string;
+  website: string | null;
+  paused: boolean;
+  companyEmail: string | null;
+  createdAt: string;
+  updatedAt: string;
+  user: { name: string | null; email: string | null };
+  _count: { tasks: number; emailLogs: number; tweetQueue: number; contacts: number; emailConversations: number };
+}
+
+export interface AdminProjectsResponse {
+  projects: AdminProject[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export interface AdminEmailEntry {
+  id: string;
+  projectId: string;
+  fromEmail: string;
+  toEmail: string;
+  subject: string;
+  direction: "OUTBOUND" | "INBOUND";
+  status: "SENT" | "FAILED" | "BLOCKED";
+  deliveryStatus: "PENDING" | "DELIVERED" | "BOUNCED" | "OPENED" | "CLICKED" | "FAILED";
+  type: string;
+  sentAt: string;
+  project: { name: string } | null;
+  contact: { name: string | null; company: string | null } | null;
+  conversation: { id: string; status: string } | null;
+}
+
+export interface AdminEmailsResponse {
+  emails: AdminEmailEntry[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export interface AdminTasksResponse {
+  tasks: (Task & { project: { name: string } })[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export interface AdminAgent {
+  id: string;
+  name: string;
+  displayName: string;
+  status: string;
+  lastRunAt: string | null;
+  lastError: string | null;
+  tasksCompleted: number;
+  createdAt: string;
+  updatedAt: string;
+  recentLogs: {
+    id: string; action: string; status: string; duration: number | null; createdAt: string;
+    task: { title: string; projectId: string } | null;
+  }[];
+  totalExecutions: number;
+  errorCount: number;
+  errorRate: number;
+}
+
+export interface AdminBillingResponse {
+  transactions: (CreditTransaction & { user: { name: string | null; email: string | null } })[];
+  total: number;
+  page: number;
+  limit: number;
+  summary: { totalCreditsInCirculation: number; activeSubscriptions: number; totalRevenue: number };
 }
 
 export interface AgentStatus {

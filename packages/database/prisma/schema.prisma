@@ -49,7 +49,7 @@ model CreditTransaction {
 }
 
 enum CreditTransactionType {
-  SIGNUP_BONUS         // 20 free credits on first signup
+  SIGNUP_BONUS         // 200 free credits on first signup
   CARD_BONUS           // 50 free credits when user subscribes (trial start)
   PURCHASE             // Bought a credit pack (one-time top-up)
   AUTO_CHARGE          // Auto-charged when credits ran out
@@ -78,10 +78,12 @@ model Project {
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
-  tasks      Task[]
-  reports    DailyReport[]
-  tweetQueue TweetQueue[]
-  emailLogs  EmailLog[]
+  tasks              Task[]
+  reports            DailyReport[]
+  tweetQueue         TweetQueue[]
+  emailLogs          EmailLog[]
+  contacts           Contact[]
+  emailConversations EmailConversation[]
 
   @@index([userId])
   @@map("projects")
@@ -181,25 +183,102 @@ model TweetQueue {
   @@map("tweet_queue")
 }
 
-model EmailLog {
-  id             String         @id @default(cuid())
-  projectId      String         @map("project_id")
-  project        Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  azureMessageId String?        @map("azure_message_id")
-  fromEmail      String         @map("from_email")
-  toEmail        String         @map("to_email")
-  replyTo        String?        @map("reply_to")
+model Contact {
+  id          String        @id @default(cuid())
+  projectId   String        @map("project_id")
+  project     Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  email       String
+  name        String?
+  company     String?
+  role        String?
+  companyUrl  String?       @map("company_url")
+  source      ContactSource @default(OUTREACH)
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+
+  conversations EmailConversation[]
+  emailLogs     EmailLog[]
+
+  @@unique([projectId, email])
+  @@index([projectId])
+  @@index([email])
+  @@map("contacts")
+}
+
+enum ContactSource {
+  OUTREACH
+  MANUAL
+  INBOUND
+}
+
+model EmailConversation {
+  id             String             @id @default(cuid())
+  projectId      String             @map("project_id")
+  project        Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  contactId      String             @map("contact_id")
+  contact        Contact            @relation(fields: [contactId], references: [id], onDelete: Cascade)
   subject        String
-  body           String
-  status         EmailLogStatus @default(SENT)
-  errorMessage   String?        @map("error_message")
-  type           EmailLogType   @default(OUTREACH)
-  sentAt         DateTime       @default(now()) @map("sent_at")
+  status         ConversationStatus @default(ACTIVE)
+  lastActivityAt DateTime           @default(now()) @map("last_activity_at")
+  messageCount   Int                @default(0) @map("message_count")
+  createdAt      DateTime           @default(now()) @map("created_at")
+
+  emailLogs EmailLog[]
 
   @@index([projectId])
+  @@index([contactId])
   @@index([status])
+  @@index([lastActivityAt])
+  @@map("email_conversations")
+}
+
+enum ConversationStatus {
+  ACTIVE
+  REPLIED
+  FOLLOW_UP
+  CLOSED
+}
+
+model EmailLog {
+  id              String              @id @default(cuid())
+  projectId       String              @map("project_id")
+  project         Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  conversationId  String?             @map("conversation_id")
+  conversation    EmailConversation?  @relation(fields: [conversationId], references: [id], onDelete: SetNull)
+  contactId       String?             @map("contact_id")
+  contact         Contact?            @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  azureMessageId  String?             @map("azure_message_id")
+  messageId       String?             @unique @map("message_id")       // RFC 5322 Message-ID header
+  inReplyTo       String?             @map("in_reply_to")              // Parent message's Message-ID
+  references      String?                                               // Full References header chain
+  fromEmail       String              @map("from_email")
+  toEmail         String              @map("to_email")
+  replyTo         String?             @map("reply_to")
+  subject         String
+  body            String
+  htmlBody        String?             @map("html_body")
+  direction       EmailDirection      @default(OUTBOUND)
+  status          EmailLogStatus      @default(SENT)
+  deliveryStatus  EmailDeliveryStatus @default(PENDING) @map("delivery_status")
+  errorMessage    String?             @map("error_message")
+  type            EmailLogType        @default(OUTREACH)
+  sentAt          DateTime            @default(now()) @map("sent_at")
+
+  @@index([projectId])
+  @@index([conversationId])
+  @@index([contactId])
+  @@index([status])
+  @@index([deliveryStatus])
+  @@index([direction])
   @@index([sentAt])
+  @@index([messageId])
+  @@index([toEmail])
   @@map("email_logs")
+}
+
+enum EmailDirection {
+  OUTBOUND
+  INBOUND
 }
 
 enum EmailLogStatus {
@@ -208,10 +287,21 @@ enum EmailLogStatus {
   BLOCKED
 }
 
+enum EmailDeliveryStatus {
+  PENDING
+  DELIVERED
+  BOUNCED
+  OPENED
+  CLICKED
+  FAILED
+}
+
 enum EmailLogType {
   OUTREACH
   DIGEST
   NOTIFICATION
+  FOLLOW_UP
+  REPLY
 }
 
 enum TaskCategory {

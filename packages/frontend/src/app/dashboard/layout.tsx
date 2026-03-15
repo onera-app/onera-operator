@@ -13,7 +13,8 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { isLoaded, isSignedIn } = useUser();
+  const { isLoaded, isSignedIn, user } = useUser();
+  const isAdmin = user?.publicMetadata?.role === "admin";
   const router = useRouter();
 
   useEffect(() => {
@@ -52,6 +53,22 @@ export default function DashboardLayout({
           </div>
 
           <div className="flex items-center gap-4">
+            <Link
+              href="/dashboard/emails"
+              className="text-[10px] uppercase tracking-wider font-bold font-mono text-muted-foreground hover:text-primary transition-colors"
+            >
+              Emails
+            </Link>
+
+            {isAdmin && (
+              <Link
+                href="/admin"
+                className="text-[10px] uppercase tracking-wider font-bold font-mono text-muted-foreground hover:text-primary transition-colors"
+              >
+                Admin
+              </Link>
+            )}
+
             <Link
               href="/live"
               className="flex items-center gap-1.5 border border-[#fa782a]/30 bg-[#fa782a]/10 hover:bg-[#fa782a]/20 text-[#ea580c] px-2 py-1 text-[10px] uppercase tracking-wider font-bold transition-colors"

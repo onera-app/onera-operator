@@ -353,9 +353,13 @@ export async function projectRoutes(app: FastifyInstance) {
         replyTo: true,
         subject: true,
         // body EXCLUDED — full HTML email content, not needed for list view
+        direction: true,
         status: true,
+        deliveryStatus: true,
         errorMessage: true,
         type: true,
+        conversationId: true,
+        contactId: true,
         sentAt: true,
       },
     });

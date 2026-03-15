@@ -1,173 +1,84 @@
 import { AbsoluteFill, useCurrentFrame, interpolate, useVideoConfig } from "remotion";
-import { BlueprintBackground } from "../components/BlueprintBackground";
-import { Crosshair, Annotation, WirePanel } from "../components/BlueprintElements";
-import { serifFont, monoFont, sansFont } from "../fonts";
+import { ProductBackground } from "../components/ProductBackground";
+import { sansFont } from "../fonts";
 import { C } from "../colors";
 
 export const S1_TheGrind = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
-  // "You're a solo founder. It's 2am."
-  const t1 = interpolate(frame, [15, 40], [0, 1], { extrapolateRight: "clamp" });
+  // Compressed 5-second High-Impact Opener (5s total)
+  // All keyframes are fps-relative so they work at any frame rate
 
-  // Tab counter: 1 → 47
-  const tabsCount = Math.floor(
-    interpolate(frame, [60, 140], [1, 47], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })
-  );
-  const t2 = interpolate(frame, [50, 70], [0, 1], { extrapolateRight: "clamp" });
+  // 0-1.33s: "02:00 AM"
+  const f10 = Math.round(fps * 10 / 30);
+  const f30 = Math.round(fps * 30 / 30);
+  const f40 = Math.round(fps * 40 / 30);
+  const f50 = Math.round(fps * 50 / 30);
+  const f60 = Math.round(fps * 60 / 30);
+  const f70 = Math.round(fps * 70 / 30);
+  const f80 = Math.round(fps * 80 / 30);
+  const f90 = Math.round(fps * 90 / 30);
+  const f100 = Math.round(fps * 100 / 30);
+  const f110 = Math.round(fps * 110 / 30);
+  const f120 = Math.round(fps * 120 / 30);
 
-  // "3 hours writing cold emails..."
-  const t3 = interpolate(frame, [210, 240], [0, 1], { extrapolateRight: "clamp" });
+  // 0-40: "02:00 AM"
+  const timeOpacity = interpolate(frame, [0, f10, f30, f40], [0, 1, 1, 0], { extrapolateRight: "clamp" });
 
-  // "CEO / MARKETER / SALES / ENGINEER"
-  const roles = ["CEO", "MARKETER", "SALES REP", "ENGINEER", "SOCIAL MEDIA"];
-  const t4 = interpolate(frame, [420, 450], [0, 1], { extrapolateRight: "clamp" });
+  // 40-80: "47 Tabs"
+  const tabsOpacity = interpolate(frame, [f40, f50, f70, f80], [0, 1, 1, 0], { extrapolateRight: "clamp" });
+  const tabsCount = Math.floor(interpolate(frame, [f40, f60], [1, 47], { extrapolateRight: "clamp", extrapolateLeft: "clamp" }));
 
-  // "All at once. Every day."
-  const t5 = interpolate(frame, [540, 570], [0, 1], { extrapolateRight: "clamp" });
+  // 80-110: "EVERYTHING. EVERYWHERE."
+  const chaosOpacity = interpolate(frame, [f80, f90, f100, f110], [0, 1, 1, 0], { extrapolateRight: "clamp" });
 
-  // Subtle breathing scale
-  const breathe = 1 + Math.sin(frame * 0.02) * 0.003;
+  // 110-150: Role Flashing (very fast — ~8 frames per role at 60fps ≈ same speed)
+  const rolesOpacity = interpolate(frame, [f110, f120], [0, 1], { extrapolateRight: "clamp" });
+  const flashInterval = Math.round(fps * 4 / 30); // 4 frames at 30fps → 8 at 60fps
+  const activeRoleIndex = Math.floor((frame - f110) / Math.max(flashInterval, 1)) % 4;
+  const roles = ["CEO", "MARKETER", "ENGINEER", "SALES"];
 
   return (
-    <BlueprintBackground>
-      <Crosshair x="15%" y="18%" size={200} rotation={frame * 0.08} opacity={0.08} />
-      <Crosshair x="85%" y="82%" size={300} rotation={frame * -0.04} opacity={0.06} />
-      <Annotation text="scene_01 / the_grind" x={60} y={40} opacity={0.3} />
+    <ProductBackground>
+      <AbsoluteFill style={{ justifyContent: "center", alignItems: "center" }}>
 
-      <AbsoluteFill style={{ justifyContent: "center", alignItems: "center", padding: 100 }}>
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: 48,
-            width: "100%",
-            maxWidth: 1200,
-            transform: `scale(${breathe})`,
-          }}
-        >
-          {/* Timestamp + Solo founder */}
-          <div style={{ opacity: t1 }}>
-            <div
-              style={{
-                fontFamily: monoFont,
-                color: C.accent,
-                fontSize: 14,
-                marginBottom: 12,
-                letterSpacing: "0.2em",
-              }}
-            >
-              [ TIMESTAMP: 02:00 AM ]
-            </div>
-            <h1
-              style={{
-                fontFamily: serifFont,
-                fontSize: 72,
-                fontWeight: 700,
-                color: C.textPrimary,
-                margin: 0,
-                lineHeight: 1.1,
-              }}
-            >
-              You're a solo founder.
-            </h1>
-          </div>
-
-          {/* Tab counter — big number */}
-          <div style={{ opacity: t2, display: "flex", alignItems: "baseline", gap: 20 }}>
-            <div
-              style={{
-                fontFamily: sansFont,
-                fontSize: 140,
-                fontWeight: 900,
-                color: C.accent,
-                lineHeight: 1,
-                textShadow: `0 0 60px rgba(120, 180, 255, 0.3)`,
-              }}
-            >
-              {tabsCount}
-            </div>
-            <h2
-              style={{
-                fontFamily: sansFont,
-                fontSize: 40,
-                color: C.textSecondary,
-                margin: 0,
-                fontWeight: 500,
-              }}
-            >
-              browser tabs open.
-            </h2>
-          </div>
-
-          {/* Pain points */}
-          <div
-            style={{
-              opacity: t3,
-              borderLeft: `2px solid ${C.wire}`,
-              paddingLeft: 28,
-            }}
-          >
-            <h3
-              style={{
-                fontFamily: serifFont,
-                fontSize: 36,
-                color: C.textSecondary,
-                margin: 0,
-                lineHeight: 1.5,
-                fontWeight: 400,
-              }}
-            >
-              3 hours writing cold emails.
-              <br />
-              Debugging a landing page.
-              <br />
-              12 leads ghosted you.
-            </h3>
-          </div>
-
-          {/* Roles */}
-          <div style={{ opacity: t4, display: "flex", gap: 12, flexWrap: "wrap" }}>
-            {roles.map((role, i) => (
-              <div
-                key={role}
-                style={{
-                  fontFamily: monoFont,
-                  fontSize: 16,
-                  color: C.accent,
-                  fontWeight: 700,
-                  border: `1px solid ${C.wire}`,
-                  padding: "8px 16px",
-                  letterSpacing: "0.1em",
-                  opacity: interpolate(frame, [420 + i * 15, 440 + i * 15], [0, 1], {
-                    extrapolateRight: "clamp",
-                    extrapolateLeft: "clamp",
-                  }),
-                }}
-              >
-                {role}
-              </div>
-            ))}
-          </div>
-
-          {/* All at once */}
-          <div style={{ opacity: t5 }}>
-            <h2
-              style={{
-                fontFamily: sansFont,
-                fontSize: 52,
-                fontWeight: 800,
-                color: C.textPrimary,
-                margin: 0,
-                textShadow: `0 0 40px rgba(120, 180, 255, 0.15)`,
-              }}
-            >
-              All at once. Every day.
-            </h2>
-          </div>
+        {/* It's 2am */}
+        <div style={{ position: "absolute", opacity: timeOpacity, display: "flex", flexDirection: "column", alignItems: "center" }}>
+          <h1 style={{ fontFamily: sansFont, fontSize: 320, fontWeight: 900, color: C.foreground, margin: 0, letterSpacing: "-0.05em" }}>
+            02:00
+          </h1>
+          <div style={{ fontFamily: sansFont, fontSize: 40, fontWeight: 600, color: C.primary, letterSpacing: "0.2em" }}>AM</div>
         </div>
+
+        {/* 47 Tabs */}
+        <div style={{ position: "absolute", opacity: tabsOpacity, display: "flex", flexDirection: "column", alignItems: "center" }}>
+          <h1 style={{ fontFamily: sansFont, fontSize: 480, fontWeight: 900, color: C.primary, margin: 0, lineHeight: 0.8 }}>
+            {tabsCount}
+          </h1>
+          <h2 style={{ fontFamily: sansFont, fontSize: 60, color: C.foreground, margin: 0, fontWeight: 700, marginTop: 40 }}>
+            Tabs Open.
+          </h2>
+        </div>
+
+        {/* Chaos / Overwhelm */}
+        <div style={{ position: "absolute", opacity: chaosOpacity, display: "flex", flexDirection: "column", gap: 32, alignItems: "center" }}>
+          <h1 style={{ fontFamily: sansFont, fontSize: 160, fontWeight: 900, color: C.foreground, margin: 0, letterSpacing: "-0.04em", textAlign: "center", lineHeight: 1 }}>
+            EVERYTHING,<br/>EVERYWHERE.
+          </h1>
+        </div>
+
+        {/* Roles flashing */}
+        <div style={{ position: "absolute", opacity: rolesOpacity, display: "flex", flexDirection: "column", alignItems: "center" }}>
+          <div style={{ fontFamily: sansFont, fontSize: 32, color: C.textSecondary, marginBottom: 40, fontWeight: 500 }}>
+            You are the:
+          </div>
+          <h1 style={{ fontFamily: sansFont, fontSize: 240, fontWeight: 900, color: C.primary, margin: 0, letterSpacing: "-0.04em" }}>
+            {frame > f110 ? roles[activeRoleIndex] : roles[0]}
+          </h1>
+        </div>
+
       </AbsoluteFill>
-    </BlueprintBackground>
+    </ProductBackground>
   );
 };

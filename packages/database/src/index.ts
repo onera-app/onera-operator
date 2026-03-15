@@ -11,6 +11,8 @@ export type {
   DailyReport,
   TweetQueue,
   EmailLog,
+  Contact,
+  EmailConversation,
 } from "@prisma/client";
 
 export {
@@ -20,4 +22,8 @@ export {
   TweetQueueStatus,
   EmailLogStatus,
   EmailLogType,
+  EmailDirection,
+  EmailDeliveryStatus,
+  ConversationStatus,
+  ContactSource,
 } from "@prisma/client";

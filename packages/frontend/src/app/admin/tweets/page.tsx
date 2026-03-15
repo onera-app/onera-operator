@@ -135,7 +135,7 @@ export default function AdminTweetsPage() {
 
   if (!isLoaded || !user) {
     return (
-      <div className="flex h-screen items-center justify-center">
+      <div className="flex items-center justify-center py-24">
         <span className="text-xs text-muted-foreground uppercase tracking-wider animate-pulse">
           Loading...
         </span>
@@ -147,16 +147,13 @@ export default function AdminTweetsPage() {
   if (role !== "admin") return null;
 
   return (
-    <div className="min-h-screen bg-background p-6 max-w-4xl mx-auto">
+    <div className="max-w-4xl mx-auto">
       {/* Header */}
       <div className="mb-6">
         <div className="flex items-center justify-between mb-2">
-          <h1 className="text-lg font-bold text-primary uppercase tracking-wider">
-            Tweet Queue
-          </h1>
-          <Button variant="outline" size="sm" onClick={() => router.push("/dashboard")}>
-            Back to Dashboard
-          </Button>
+          <div className="flex items-center gap-3">
+            <h1 className="font-serif text-2xl font-bold">Tweet Queue</h1>
+          </div>
         </div>
         <p className="text-xs text-muted-foreground">
           Review AI-generated tweets and post them manually on X. Latest tweets shown first.
